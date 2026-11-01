@@ -1,0 +1,22 @@
+# Public settings for Golem. Everything in this file is safe to commit.
+# The bot token is a secret and belongs in .env, never here.
+
+# Developer portal → General Information → Application ID. It is also the bot's
+# user ID and appears in every invite link. Quote it: YAML reads a bare number
+# as a float and loses the last digits.
+#
+# Set DISCORD_CLIENT_ID in .env to point a local run at a separate development
+# application instead of this one.
+applicationId: '1566287244707496026'
+
+# Developer portal → General Information → Public Key. Discord signs HTTP
+# interactions with the matching private key. Golem receives interactions over
+# the gateway, so nothing reads this yet; it is here for an Interactions
+# Endpoint URL or a serverless handler later.
+publicKey: ef6560540a4000a706b5d15ed0e4229afe76af14a6d423c0edef7830b396708f
+
+# Permission bit field requested by the invite link. 0 asks for nothing, which
+# is all slash commands need. Raise it only when a command needs Golem itself to
+# act, for example 268435456 for Manage Roles. Quote it for the same reason as
+# applicationId.
+invitePermissions: '0'
