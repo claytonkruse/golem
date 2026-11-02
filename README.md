@@ -76,7 +76,7 @@ The dashboard's General page (the first settings page) has **Restore roles on re
 
 ## Moderation
 
-`/purge amount:<1–100> [user]` deletes the most recent messages in the channel, or with `user` that member's most recent ones, looking back up to 1,000 messages. It needs Manage Messages by default, and Golem needs View Channel, Read Message History and Manage Messages in the channel; the invite link doesn't ask for them, so the reply names any that are missing. Pinned messages are kept, and Discord doesn't let bots bulk-delete messages older than 14 days. Purges show up in event logs as "Messages purged".
+`/purge amount:<1–100> [user]` deletes the most recent messages in the channel, or with `user` that member's most recent ones, looking back up to 1,000 messages. It needs Manage Messages by default, and Golem needs View Channel, Read Message History and Manage Messages in the channel. The invite link asks for them, but a channel can take them away, so the reply names any that are missing. Pinned messages are kept, and Discord doesn't let bots bulk-delete messages older than 14 days. Purges show up in event logs as "Messages purged".
 
 ## Leveling
 

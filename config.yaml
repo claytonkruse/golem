@@ -16,13 +16,19 @@ applicationId: '1566287244707496026'
 publicKey: ef6560540a4000a706b5d15ed0e4229afe76af14a6d423c0edef7830b396708f
 
 # Permissions the invite link asks for, by their discord.js names (PermissionFlagsBits).
-# Event logs need View Channel, Send Messages and Embed Links to post. Restoring roles
-# needs Manage Roles, and View Audit Log to tell a kick from someone leaving. Slash
-# commands need nothing. Servers that added Golem earlier keep the permissions they
-# granted then.
+# Every one Golem uses, so features work as soon as it is added:
+# - View Channel, Send Messages, Embed Links: event logs, welcome messages and feeds.
+# - Manage Server: seeing invites, for who invited someone in welcome messages and logs.
+# - Manage Roles: restoring roles on rejoin. View Audit Log tells a kick from leaving.
+# - Read Message History, Manage Messages: /purge.
+# Replies to slash commands need nothing. Servers that added Golem earlier keep the
+# permissions they granted then.
 invitePermissions:
   - ViewChannel
   - SendMessages
   - EmbedLinks
+  - ManageGuild
   - ManageRoles
   - ViewAuditLog
+  - ReadMessageHistory
+  - ManageMessages
