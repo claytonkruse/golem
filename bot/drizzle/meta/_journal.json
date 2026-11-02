@@ -141,6 +141,13 @@
       "when": 1793650813447,
       "tag": "0019_invite_count_adjustments",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1793651800111,
+      "tag": "0020_analytics",
+      "breakpoints": true
     }
   ]
 }

@@ -218,3 +218,51 @@ export function avatarUrl(user: { id: string; avatar: string | null }): string {
 export function guildIconUrl(guild: DiscordGuild): string | null {
 	return guild.icon ? `${CDN}/icons/${guild.id}/${guild.icon}.png?size=96` : null;
 }
+
+export type DiscordInvite = {
+	code: string;
+	uses: number;
+	// Missing for invites made by Discord itself, like a widget's.
+	inviter?: DiscordUser;
+};
+
+// A server's invite links with their all-time uses, or null when Golem lacks Manage Server,
+// which Discord requires to list them.
+export async function fetchGuildInvites(guildId: string): Promise<DiscordInvite[] | null> {
+	const response = await discordFetch(`${API}/guilds/${guildId}/invites`, {
+		headers: { Authorization: `Bot ${botToken()}` }
+	});
+	if (response.status === 401) error(500, 'The dashboard has the wrong bot token.');
+	if (response.status === 403) return null;
+	return discordJson<DiscordInvite[]>(response, "list this server's invites");
+}
+
+// Names change rarely, so users are cached for a while across page loads.
+const USER_CACHE_MS = 10 * 60 * 1000;
+const userCache = new Map<string, { at: number; user: Promise<DiscordUser | null> }>();
+
+async function loadUser(userId: string): Promise<DiscordUser | null> {
+	const response = await discordFetch(`${API}/users/${userId}`, {
+		headers: { Authorization: `Bot ${botToken()}` }
+	});
+	// A deleted account, or one Discord won't show; the page falls back to the id.
+	if (!response.ok) return null;
+	return (await response.json()) as DiscordUser;
+}
+
+export async function fetchUsers(userIds: string[]): Promise<Map<string, DiscordUser>> {
+	for (const [id, entry] of userCache) {
+		if (Date.now() - entry.at >= USER_CACHE_MS) userCache.delete(id);
+	}
+	const users = await Promise.all(
+		userIds.map((id) => {
+			let entry = userCache.get(id);
+			if (!entry) {
+				entry = { at: Date.now(), user: loadUser(id) };
+				userCache.set(id, entry);
+			}
+			return entry.user;
+		})
+	);
+	return new Map(users.filter((user) => user !== null).map((user) => [user.id, user]));
+}

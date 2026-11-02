@@ -77,6 +77,16 @@ The dashboard's General page (the first settings page) has **Restore roles on re
 - **Include kicked members** (`restore_kicked`) and **Include banned members** (`restore_banned`) are off by default, so kicked and banned members rejoin without roles as Discord does it. Each saved row records how the member left (`member_roles.removal`), and the switches are checked when the member rejoins.
 - Discord reports leaving, kicks and bans the same way. Bans are recognized by their own event, kicks by the audit log, which needs View Audit Log. Without it a removal is saved as `unknown` and treated as a possible kick.
 
+## Analytics
+
+The dashboard's Analytics page (second, after General) charts joins and leaves, net growth, messages and active members per day, with totals and retention, for the last 7, 30 or 90 days. Charts use shadcn-svelte's Chart component on [LayerChart](https://layerchart.com/).
+
+- Every server records them from when this shipped, whether or not anyone looks: `member_events` has a row per join and leave, and `member_activity` counts each member's messages per day. Queries are in `bot/src/db/analytics.ts`; recording is in `bot/src/events/analytics.ts`.
+- Apps, webhooks and system messages aren't counted. Days are UTC.
+- Net growth is joins minus leaves added up from the start of the range, not the member count. Retention is the share of members who joined in the range and didn't leave within 1, 7 or 30 days, counting only joins at least that old.
+- Joins and leaves while Golem is offline are missed, like the other member counts.
+- Below the charts, **Top invites** lists the five links with the most uses and who made them, from Discord's own counts (so including members who later left and uses from before Golem). It needs Manage Server. **Top inviters** ranks people by the same count as `{invitecount}`, tracked members still here plus `invite_count_adjustments`, and `/topinviters` shows the same leaderboard in Discord (top 10, plus your own place if you're further down).
+
 ## Moderation
 
 `/purge amount:<1–100> [user]` deletes the most recent messages in the channel, or with `user` that member's most recent ones, looking back up to 1,000 messages. It needs Manage Messages by default, and Golem needs View Channel, Read Message History and Manage Messages in the channel. The invite link asks for them, but a channel can take them away, so the reply names any that are missing. Pinned messages are kept, and Discord doesn't let bots bulk-delete messages older than 14 days. Purges show up in event logs as "Messages purged".

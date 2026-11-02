@@ -109,6 +109,36 @@ export const inviteCountAdjustments = sqliteTable(
 	(table) => [primaryKey({ columns: [table.guildId, table.inviterId] })]
 );
 
+// Every join and leave, for the dashboard's analytics. Recorded for every server from when
+// this shipped; apps aren't counted.
+export const memberEvents = sqliteTable(
+	'member_events',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		userId: text('user_id').notNull(),
+		kind: text('kind', { enum: ['join', 'leave'] }).notNull(),
+		at: integer('at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [index('member_events_guild_at_idx').on(table.guildId, table.at)]
+);
+
+// Messages each member sent per day (UTC, as YYYY-MM-DD), for the dashboard's activity charts.
+export const memberActivity = sqliteTable(
+	'member_activity',
+	{
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		day: text('day').notNull(),
+		userId: text('user_id').notNull(),
+		messages: integer('messages').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.guildId, table.day, table.userId] })]
+);
+
 // When each current member joined, recorded on every join whether or not anything shows it,
 // so "time in server" works once it is turned on. Discord also knows this for members Golem
 // has cached; this covers the ones it hasn't. Removed when the member leaves.

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import ChartBar from '@tabler/icons-svelte/icons/chart-bar';
 	import ChannelSidebar from '#lib/components/dashboard/channel-sidebar.svelte';
 	import DeviceGamepad2 from '@tabler/icons-svelte/icons/device-gamepad-2';
 	import ListDetails from '@tabler/icons-svelte/icons/list-details';
@@ -19,6 +20,11 @@
 						href: resolve(`dashboard/${data.guild.id}/general/`),
 						label: 'General',
 						icon: Settings
+					},
+					{
+						href: resolve(`dashboard/${data.guild.id}/analytics/`),
+						label: 'Analytics',
+						icon: ChartBar
 					},
 					{
 						href: resolve(`dashboard/${data.guild.id}/logging/`),

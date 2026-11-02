@@ -60,3 +60,34 @@ export function countInvitedMembers(guildId: string, inviterId: string): number 
 			.get()?.extra ?? 0;
 	return tracked + extra;
 }
+
+export type InviterRank = { inviterId: string; invites: number; rank: number };
+
+// Every inviter with at least one invite, most first, counted like countInvitedMembers.
+// Ties share a rank.
+export function inviterLeaderboard(guildId: string): InviterRank[] {
+	const totals = new Map<string, number>();
+	const tracked = db
+		.select({ inviterId: inviteJoins.inviterId, value: count() })
+		.from(inviteJoins)
+		.where(eq(inviteJoins.guildId, guildId))
+		.groupBy(inviteJoins.inviterId)
+		.all();
+	for (const row of tracked) totals.set(row.inviterId, row.value);
+	const adjustments = db
+		.select()
+		.from(inviteCountAdjustments)
+		.where(eq(inviteCountAdjustments.guildId, guildId))
+		.all();
+	for (const row of adjustments) {
+		totals.set(row.inviterId, (totals.get(row.inviterId) ?? 0) + row.extra);
+	}
+	const sorted = [...totals]
+		.filter(([, invites]) => invites > 0)
+		.sort((a, b) => b[1] - a[1])
+		.map(([inviterId, invites]) => ({ inviterId, invites }));
+	return sorted.map((entry) => ({
+		...entry,
+		rank: sorted.findIndex((other) => other.invites === entry.invites) + 1
+	}));
+}
