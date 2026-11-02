@@ -6,11 +6,17 @@ import {
 	TimestampStyles,
 	userMention
 } from 'discord.js';
-import { countInvitedMembers, recordInviteJoin, removeInviteJoin } from '../db/invite-joins.ts';
+import { removeInviteJoin } from '../db/invite-joins.ts';
 import { hasLogOption } from '../db/log-options.ts';
+import { recordLeave } from '../db/member-leaves.ts';
 import type { Event } from '../lib/event.ts';
-import { findInvite } from '../lib/invites.ts';
 import { addChange, logColor, logEmbed, sendLog, truncate, withUser } from '../lib/logging.ts';
+import { forgetJoin, joinDetails } from '../lib/member-join.ts';
+
+function timesLeft(leaves: number): string {
+	if (leaves === 0) return 'Never';
+	return leaves === 1 ? 'Once' : `${leaves} times`;
+}
 
 export const events = [
 	{
@@ -45,11 +51,12 @@ export const events = [
 				});
 
 			// Runs even when nothing is logged yet, to keep the invite counts current.
+			const details = await joinDetails(member);
 			if (hasLogOption(member.guild.id, 'member_join', 'show_inviter')) {
-				if (member.user.bot) {
+				const invite = details.invite;
+				if (member.user.bot || !invite) {
 					embed.addFields({ name: 'Invited by', value: 'Added as an app, not through an invite' });
 				} else {
-					const invite = await findInvite(member.guild);
 					if (invite.kind === 'invite') {
 						const inviter = invite.inviterId ? userMention(invite.inviterId) : 'Unknown';
 						embed.addFields({
@@ -57,15 +64,14 @@ export const events = [
 							value: `${inviter} with \`${invite.code}\``,
 							inline: true
 						});
-						if (invite.inviterId) {
-							recordInviteJoin(member.guild.id, member.id, invite.inviterId, invite.code);
-							if (hasLogOption(member.guild.id, 'member_join', 'show_invite_count')) {
-								const invited = countInvitedMembers(member.guild.id, invite.inviterId);
-								embed.addFields({
-									name: 'Their invites',
-									value: `${inviter} has now invited ${invited} of our members.`
-								});
-							}
+						if (
+							details.inviterCount !== null &&
+							hasLogOption(member.guild.id, 'member_join', 'show_invite_count')
+						) {
+							embed.addFields({
+								name: 'Their invites',
+								value: `${inviter} has now invited ${details.inviterCount} of our members.`
+							});
 						}
 					} else if (invite.kind === 'vanity') {
 						embed.addFields({
@@ -77,6 +83,9 @@ export const events = [
 					}
 				}
 			}
+			if (hasLogOption(member.guild.id, 'member_join', 'show_leave_count')) {
+				embed.addFields({ name: 'Left before', value: timesLeft(details.leaves) });
+			}
 
 			await sendLog(member.guild, 'member_join', embed);
 		}
@@ -87,6 +96,9 @@ export const events = [
 		async execute(member) {
 			// Someone who left no longer counts toward their inviter's members.
 			removeInviteJoin(member.guild.id, member.id);
+			forgetJoin(member);
+			// Golem itself leaving is handled by GuildDelete, which deletes the server's rows.
+			if (member.id !== member.client.user.id) recordLeave(member.guild.id, member.id);
 			const embed = withUser(logEmbed(logColor.delete, 'Member left'), member.user).setDescription(
 				`${userMention(member.id)} (${member.user.username})`
 			);

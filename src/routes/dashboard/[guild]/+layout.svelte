@@ -5,6 +5,7 @@
 	import ListDetails from '@tabler/icons-svelte/icons/list-details';
 	import Rss from '@tabler/icons-svelte/icons/rss';
 	import TrendingUp from '@tabler/icons-svelte/icons/trending-up';
+	import UserPlus from '@tabler/icons-svelte/icons/user-plus';
 
 	let { data, children } = $props();
 
@@ -17,6 +18,11 @@
 						href: resolve(`dashboard/${data.guild.id}/logging/`),
 						label: 'Logging',
 						icon: ListDetails
+					},
+					{
+						href: resolve(`dashboard/${data.guild.id}/welcome/`),
+						label: 'Welcome',
+						icon: UserPlus
 					},
 					{
 						href: resolve(`dashboard/${data.guild.id}/leveling/`),

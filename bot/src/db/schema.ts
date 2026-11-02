@@ -80,6 +80,32 @@ export const inviteJoins = sqliteTable(
 	]
 );
 
+// How many times each person has left a server, counted from when Golem started tracking
+// leaves. Deleted with the server's row when Golem leaves.
+export const memberLeaves = sqliteTable(
+	'member_leaves',
+	{
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		userId: text('user_id').notNull(),
+		leaves: integer('leaves').notNull(),
+		lastLeftAt: integer('last_left_at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [primaryKey({ columns: [table.guildId, table.userId] })]
+);
+
+// The message Golem posts when someone joins. A missing row means it is off.
+export const welcomeSettings = sqliteTable('welcome_settings', {
+	guildId: text('guild_id')
+		.primaryKey()
+		.references(() => guilds.id, { onDelete: 'cascade' }),
+	enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+	channelId: text('channel_id'),
+	// A template with {variables}, listed in bot/src/lib/welcome.ts.
+	message: text('message').notNull()
+});
+
 // XP members earn by chatting in one server. Kept when they leave, so it comes back if
 // they rejoin; deleted with the server's row when Golem leaves.
 export const memberXp = sqliteTable(

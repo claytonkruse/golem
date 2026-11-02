@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import LogSettings from '#lib/components/log-settings.svelte';
 
 	let { data, form } = $props();
@@ -16,4 +18,7 @@
 		{form.message}
 	</p>
 {/if}
-<LogSettings logging={data.logging} />
+<LogSettings
+	logging={data.logging}
+	welcomeHref={resolve(`dashboard/${page.params.guild}/welcome/`)}
+/>

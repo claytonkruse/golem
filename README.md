@@ -51,8 +51,18 @@ Servers pick channels for each of 22 events, grouped as server changes, moderati
 - Handlers live in `bot/src/events/log-*.ts` and post through `sendLog` in `bot/src/lib/logging.ts`, which skips channels where Golem lacks View Channel, Send Messages or Embed Links and forgets channels that no longer exist.
 - Deleted and edited messages include their text only if Golem saw the message arrive. Cached messages are swept after six hours.
 - Logs don't say who made a change; that would need View Audit Log and an audit log lookup per event.
+- **Member joined** has switches (`log_options`) for who invited someone, how many members their inviter has brought in, and how many times they left before. Its row on the dashboard points to the Welcome page, which can show the same things publicly.
 
 Logging uses two privileged intents. Turn on **Server Members Intent** and **Message Content Intent** under **Bot** in the developer portal, or the bot fails to log in with "Used disallowed intents". Past 100 servers, Discord has to verify Golem and approve both.
+
+## Welcome messages
+
+Servers can have Golem post a message when someone joins, set on the dashboard's Welcome page or with `/welcome set [channel] [message]`, `/welcome off` and `/welcome show` (Manage Server by default). Both edit `welcome_settings`; the page and `/welcome show` point back to the **Member joined** log.
+
+- The message is a template. `{user}`, `{username}`, `{server}`, `{membercount}`, `{inviter}`, `{invitecount}` and `{leavecount}` are listed with descriptions in `bot/src/lib/welcome.ts`; unknown `{words}` are left as typed. In `/welcome set`, `\n` is a line break.
+- Only the new member is pinged. Apps added to the server aren't welcomed.
+- `{inviter}` and `{invitecount}` turn on invite tracking for the server just like the log's "Show who invited them" switch, and need Manage Server too. The log and the welcome message share one invite lookup per join (`joinDetails` in `bot/src/lib/member-join.ts`), since the invite counts can only be compared once.
+- Leaves are counted in `member_leaves` for every server, whether or not anything shows them, starting from when this shipped. Kicks and bans count as leaving, since Discord reports them the same way, and leaves while Golem is offline are missed.
 
 ## Moderation
 

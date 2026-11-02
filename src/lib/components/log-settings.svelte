@@ -21,7 +21,9 @@
 		enabledOptions: string[];
 	};
 
-	let { logging }: { logging: Logging } = $props();
+	// welcomeHref: the Welcome page, pointed to from Member joined since both show who invited
+	// someone and how often they left before.
+	let { logging, welcomeHref }: { logging: Logging; welcomeHref: string } = $props();
 
 	const enabled = $derived(new Set(logging.enabledOptions));
 
@@ -159,6 +161,17 @@
 								</form>
 							{/each}
 						</div>
+					{/if}
+					{#if event.key === 'member_join'}
+						<p class="flex items-start gap-1.5 text-xs/relaxed text-muted-foreground">
+							<InfoCircle class="mt-0.5 size-3.5 shrink-0" />
+							<span>
+								This log is for moderators. To greet new members publicly with who invited them and
+								how often they left before, also see the
+								<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- built with resolve() by the page -->
+								<a href={welcomeHref} class="text-foreground underline">Welcome</a> page.
+							</span>
+						</p>
 					{/if}
 				</div>
 			{/each}

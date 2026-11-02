@@ -185,8 +185,14 @@ export const logEventOptions: Partial<Record<LogEventKey, LogOption[]>> = {
 			key: 'show_invite_count',
 			label: 'Show how many members the inviter has brought in',
 			description:
-				'Counts people they invited who are still in the server, from when "Show who invited them" was turned on.',
+				'Counts people they invited who are still in the server, from when Golem started tracking invites here.',
 			requires: 'show_inviter'
+		},
+		{
+			key: 'show_leave_count',
+			label: 'Show how many times they left before',
+			description:
+				"Counts leaves Golem has seen, so leaves before Golem tracked them or while it was offline aren't included."
 		}
 	]
 };
