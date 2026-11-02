@@ -1,7 +1,8 @@
 // Welcome message templates. Shared by the bot, /welcome and the dashboard, so it must not
 // import discord.js clients or the database.
 
-export const DEFAULT_WELCOME_MESSAGE = 'Welcome to {server}, {user}!';
+export const DEFAULT_WELCOME_MESSAGE =
+	'{user} has joined. Welcome! {inviter} has now invited {invitecount} of our members.';
 export const MAX_WELCOME_LENGTH = 2000;
 
 export const welcomeVariables = [

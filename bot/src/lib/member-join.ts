@@ -1,4 +1,4 @@
-import { userMention, type GuildMember, type PartialGuildMember } from 'discord.js';
+import { escapeMarkdown, userMention, type GuildMember, type PartialGuildMember } from 'discord.js';
 import { countInvitedMembers, recordInviteJoin } from '../db/invite-joins.ts';
 import { countLeaves } from '../db/member-leaves.ts';
 import { hasLogOption } from '../db/log-options.ts';
@@ -66,10 +66,16 @@ export function welcomeValues(member: GuildMember, details: JoinDetails): Welcom
 	let inviter = 'someone';
 	if (invite?.kind === 'invite' && invite.inviterId) inviter = userMention(invite.inviterId);
 	else if (invite?.kind === 'vanity') inviter = 'the vanity link';
+	// Names are escaped so Discord shows them as typed, like a_b_c without italics.
 	return {
 		user: userMention(member.id),
-		username: member.user.username,
-		server: member.guild.name,
+		username: escapeMarkdown(member.user.username),
+		server: escapeMarkdown(member.guild.name, {
+			heading: true,
+			bulletedList: true,
+			numberedList: true,
+			maskedLink: true
+		}),
 		membercount: String(member.guild.memberCount),
 		inviter,
 		invitecount: details.inviterCount === null ? '?' : String(details.inviterCount),

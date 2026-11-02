@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { renderWelcome } from '#bot/lib/welcome.ts';
 	import { channelGroups } from '#lib/channel-groups.js';
+	import { escapeDiscordMarkdown, renderDiscordMarkdown } from '#lib/discord-markdown.js';
 	import SettingSwitch from '#lib/components/setting-switch.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
@@ -20,18 +21,32 @@
 		data.welcome.channelId !== null &&
 			data.welcome.channels.some((channel) => channel.id === data.welcome.channelId)
 	);
-	// Sample values, with the mention-style ones written the way Discord shows them.
+	// Sample values, with mentions written as the bot sends them so they show as Discord does.
 	const preview = $derived(
-		renderWelcome(message, {
-			user: '@NewMember',
-			username: 'newmember',
-			server: page.data.guild.name,
-			membercount: '128',
-			inviter: '@Inviter',
-			invitecount: '5',
-			leavecount: '1'
-		})
+		renderDiscordMarkdown(
+			renderWelcome(message, {
+				user: '<@member>',
+				username: 'newmember',
+				server: escapeDiscordMarkdown(page.data.guild.name),
+				membercount: '128',
+				inviter: '<@inviter>',
+				invitecount: '5',
+				leavecount: '1'
+			}),
+			{
+				users: { member: 'NewMember', inviter: 'Inviter' },
+				channels: Object.fromEntries(
+					data.welcome.channels.map((channel) => [channel.id, channel.name])
+				)
+			}
+		)
 	);
+
+	// Spoilers stay hidden until clicked, like in Discord.
+	function revealSpoiler(event: MouseEvent) {
+		const spoiler = (event.target as HTMLElement).closest('.spoiler');
+		spoiler?.classList.add('revealed');
+	}
 
 	const fieldClass =
 		'w-full min-w-0 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 dark:bg-input/30';
@@ -119,11 +134,14 @@
 			</label>
 			<div class="flex flex-col gap-1.5 text-xs">
 				<span class="font-medium">Preview</span>
-				<p
-					class="rounded-md bg-muted px-3 py-2 text-sm/relaxed whitespace-pre-wrap text-foreground"
+				<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+				<div
+					class="discord-preview rounded-md bg-muted px-3 py-2 text-sm/relaxed break-words text-foreground"
+					onclick={revealSpoiler}
 				>
-					{preview}
-				</p>
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -- renderDiscordMarkdown escapes all text. -->
+					{@html preview}
+				</div>
 			</div>
 			<div>
 				<Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
@@ -149,3 +167,97 @@
 		</dl>
 	</Card.Content>
 </Card.Root>
+
+<style>
+	.discord-preview :global {
+		h1,
+		h2,
+		h3 {
+			margin: 0.25rem 0;
+			font-weight: 700;
+			line-height: 1.375;
+		}
+		h1 {
+			font-size: 1.5rem;
+		}
+		h2 {
+			font-size: 1.25rem;
+		}
+		h3 {
+			font-size: 1rem;
+		}
+		small {
+			display: block;
+			font-size: 0.75rem;
+			color: var(--muted-foreground);
+		}
+		blockquote {
+			border-left: 4px solid var(--border);
+			padding-left: 0.75rem;
+		}
+		ul,
+		ol {
+			padding-left: 1.25rem;
+		}
+		ul {
+			list-style: disc;
+		}
+		ol {
+			list-style: decimal;
+		}
+		code {
+			border-radius: 0.25rem;
+			background: var(--background);
+			padding: 0 0.25rem;
+			font-family: var(--font-mono);
+			font-size: 0.85em;
+		}
+		pre {
+			margin: 0.25rem 0;
+			overflow-x: auto;
+			border: 1px solid var(--border);
+			border-radius: 0.25rem;
+			background: var(--background);
+			padding: 0.5rem;
+			white-space: pre-wrap;
+		}
+		pre code {
+			padding: 0;
+		}
+		a {
+			color: oklch(0.6 0.15 250);
+		}
+		a:hover {
+			text-decoration: underline;
+		}
+		.mention,
+		.timestamp {
+			border-radius: 0.25rem;
+			background: oklch(0.6 0.15 270 / 0.2);
+			padding: 0 0.125rem;
+			color: oklch(0.55 0.17 270);
+			font-weight: 500;
+		}
+		.timestamp {
+			background: var(--background);
+			color: inherit;
+		}
+		.spoiler {
+			cursor: pointer;
+			border-radius: 0.25rem;
+			background: var(--foreground);
+			color: transparent;
+		}
+		.spoiler :is(*) {
+			visibility: hidden;
+		}
+		.spoiler.revealed {
+			cursor: auto;
+			background: var(--background);
+			color: inherit;
+		}
+		.spoiler.revealed :is(*) {
+			visibility: visible;
+		}
+	}
+</style>
