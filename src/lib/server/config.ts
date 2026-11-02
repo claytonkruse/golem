@@ -11,7 +11,7 @@ export function invite(guildId?: string): string {
 	return inviteUrl(clientId, file.invitePermissions, guildId);
 }
 
-export const asksForPermissions = file.invitePermissions !== '0';
+export const asksForPermissions = file.invitePermissions.length > 0;
 
 export function botToken(): string {
 	if (!DISCORD_BOT_TOKEN) {

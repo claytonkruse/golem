@@ -15,8 +15,14 @@ applicationId: '1566287244707496026'
 # Endpoint URL or a serverless handler later.
 publicKey: ef6560540a4000a706b5d15ed0e4229afe76af14a6d423c0edef7830b396708f
 
-# Permission bit field requested by the invite link. Quote it for the same reason
-# as applicationId. Currently View Channel (1024) + Send Messages (2048) + Embed
-# Links (16384), which event logs need to post. Slash commands need nothing.
-# Servers that added Golem earlier keep the permissions they granted then.
-invitePermissions: '19456'
+# Permissions the invite link asks for, by their discord.js names (PermissionFlagsBits).
+# Event logs need View Channel, Send Messages and Embed Links to post. Restoring roles
+# needs Manage Roles, and View Audit Log to tell a kick from someone leaving. Slash
+# commands need nothing. Servers that added Golem earlier keep the permissions they
+# granted then.
+invitePermissions:
+  - ViewChannel
+  - SendMessages
+  - EmbedLinks
+  - ManageRoles
+  - ViewAuditLog

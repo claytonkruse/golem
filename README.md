@@ -24,11 +24,11 @@ pnpm bot
 
 `pnpm db:migrate` creates `data/golem.db`. The bot also applies pending migrations every time it starts, so in production you only need it if the dashboard starts first.
 
-The bot prints its invite link on startup, and the dashboard has an **Add to Discord** button with the same link.
+The bot prints its invite link on startup, and the dashboard has an **Add to Discord** button with the same link. Both are built by `inviteUrl` in `bot/src/lib/app-config.ts` from the permission names in `config.yaml`.
 
 ## Configuration
 
-`config.yaml` is committed and holds public settings: the application ID, the public key, and the permissions the invite link asks for. The comments in that file explain each one.
+`config.yaml` is committed and holds public settings: the application ID, the public key, and the permissions the invite link asks for, listed by their discord.js names. The comments in that file explain each one.
 
 `.env` holds the bot token and the OAuth client secret and is never committed. It can also set `DISCORD_CLIENT_ID` to run against a separate development application and `DISCORD_GUILD_ID` for a test server.
 
@@ -63,6 +63,16 @@ Servers can have Golem post a message when someone joins, set on the dashboard's
 - Only the new member is pinged. Apps added to the server aren't welcomed.
 - `{inviter}` and `{invitecount}` turn on invite tracking for the server just like the log's "Show who invited them" switch, and need Manage Server too. The log and the welcome message share one invite lookup per join (`joinDetails` in `bot/src/lib/member-join.ts`), since the invite counts can only be compared once.
 - Leaves are counted in `member_leaves` for every server, whether or not anything shows them, starting from when this shipped. Kicks and bans count as leaving, since Discord reports them the same way, and leaves while Golem is offline are missed.
+
+## Restoring roles
+
+The dashboard's General page (the first settings page) has **Restore roles on rejoin** (`guild_settings.restore_roles`, off by default). Handlers are in `bot/src/events/restore-roles.ts`.
+
+- When a member leaves, their roles go into `member_roles`; when they rejoin, Golem gives back the ones that still exist and deletes the row. Turning the setting off deletes the server's saved roles.
+- Discord doesn't send someone's roles when they leave, so the bot loads the members of servers with the setting on at startup and checks for newly enabled servers every five minutes. Leaves before that, or while Golem is offline, aren't saved.
+- Golem needs Manage Roles and can only give roles below its own highest role. `@everyone`, app roles and the booster role are skipped.
+- **Include kicked members** (`restore_kicked`) and **Include banned members** (`restore_banned`) are off by default, so kicked and banned members rejoin without roles as Discord does it. Each saved row records how the member left (`member_roles.removal`), and the switches are checked when they rejoin.
+- Discord reports leaving, kicks and bans the same way. Bans are recognized by their own event, kicks by the audit log, which needs View Audit Log. Without it a removal is saved as `unknown` and treated as a possible kick.
 
 ## Moderation
 

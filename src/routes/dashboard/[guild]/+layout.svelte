@@ -4,6 +4,7 @@
 	import DeviceGamepad2 from '@tabler/icons-svelte/icons/device-gamepad-2';
 	import ListDetails from '@tabler/icons-svelte/icons/list-details';
 	import Rss from '@tabler/icons-svelte/icons/rss';
+	import Settings from '@tabler/icons-svelte/icons/settings';
 	import TrendingUp from '@tabler/icons-svelte/icons/trending-up';
 	import UserPlus from '@tabler/icons-svelte/icons/user-plus';
 
@@ -14,6 +15,11 @@
 	const sections = $derived(
 		data.guild.joinedAt
 			? [
+					{
+						href: resolve(`dashboard/${data.guild.id}/general/`),
+						label: 'General',
+						icon: Settings
+					},
 					{
 						href: resolve(`dashboard/${data.guild.id}/logging/`),
 						label: 'Logging',

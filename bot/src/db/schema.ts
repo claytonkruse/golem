@@ -95,6 +95,27 @@ export const memberLeaves = sqliteTable(
 	(table) => [primaryKey({ columns: [table.guildId, table.userId] })]
 );
 
+// The roles someone had when they left, kept while the server restores roles on rejoin.
+// Removed once they rejoin, or for the whole server when the setting is turned off.
+export const memberRoles = sqliteTable(
+	'member_roles',
+	{
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		userId: text('user_id').notNull(),
+		// A JSON array of role ids.
+		roleIds: text('role_ids', { mode: 'json' }).$type<string[]>().notNull(),
+		// How they left: 'left', 'kicked', 'banned', or 'unknown' when Golem can't read the audit
+		// log to rule out a kick. Checked against the settings when they rejoin.
+		removal: text('removal', { enum: ['left', 'kicked', 'banned', 'unknown'] })
+			.notNull()
+			.default('left'),
+		leftAt: integer('left_at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [primaryKey({ columns: [table.guildId, table.userId] })]
+);
+
 // The message Golem posts when someone joins. A missing row means it is off.
 export const welcomeSettings = sqliteTable('welcome_settings', {
 	guildId: text('guild_id')
@@ -147,7 +168,13 @@ export const guildSettings = sqliteTable('guild_settings', {
 	// manager turns it on; XP is earned either way.
 	levelCommands: integer('level_commands', { mode: 'boolean' }).notNull().default(false),
 	// The master switch for games in this server. Off until a server manager turns it on.
-	gamesEnabled: integer('games_enabled', { mode: 'boolean' }).notNull().default(false)
+	gamesEnabled: integer('games_enabled', { mode: 'boolean' }).notNull().default(false),
+	// Whether members who leave get their roles back when they rejoin. Off until turned on.
+	restoreRoles: integer('restore_roles', { mode: 'boolean' }).notNull().default(false),
+	// Whether restoring roles also covers members who were kicked or banned. Off by default,
+	// so they rejoin without roles the way Discord does it.
+	restoreKicked: integer('restore_kicked', { mode: 'boolean' }).notNull().default(false),
+	restoreBanned: integer('restore_banned', { mode: 'boolean' }).notNull().default(false)
 });
 
 // Chips, the currency games are played with. One balance per person, shared across
