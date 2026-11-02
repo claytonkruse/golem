@@ -59,9 +59,9 @@ Logging uses two privileged intents. Turn on **Server Members Intent** and **Mes
 
 Servers can have Golem post a message when someone joins, set on the dashboard's Welcome page or with `/welcome set [channel] [message]`, `/welcome off` and `/welcome show` (Manage Server by default). Both edit `welcome_settings`; the page and `/welcome show` point back to the **Member joined** log.
 
-- The message is a template. `{user}`, `{username}`, `{server}`, `{membercount}`, `{inviter}`, `{invitecount}` and `{leavecount}` are listed with descriptions in `bot/src/lib/welcome.ts`; unknown `{words}` are left as typed. In `/welcome set`, `\n` is a line break.
-- Only the new member is pinged. Apps added to the server aren't welcomed.
-- `{inviter}` and `{invitecount}` turn on invite tracking for the server just like the log's "Show who invited them" switch, and need Manage Server too. The log and the welcome message share one invite lookup per join (`joinDetails` in `bot/src/lib/member-join.ts`), since the invite counts can only be compared once.
+- The message is a template. `{user}`, `{username}`, `{server}`, `{membercount}`, `{inviter}`, `{invitername}`, `{invitecount}` and `{leavecount}` are listed with descriptions in `bot/src/lib/welcome.ts`; unknown `{words}` are left as typed. In `/welcome set`, `\n` is a line break.
+- **Ping mentioned members** (`welcome_settings.ping_mentions`, off by default, or `/welcome set ping:`) decides whether user mentions in the message ping, including `{user}` and `{inviter}`. Roles, `@everyone` and `@here` never ping. Apps added to the server aren't welcomed.
+- `{inviter}`, `{invitername}` and `{invitecount}` turn on invite tracking for the server just like the log's "Show who invited them" switch, and need Manage Server too. The log and the welcome message share one invite lookup per join (`joinDetails` in `bot/src/lib/member-join.ts`), since the invite counts can only be compared once.
 - Leaves are counted in `member_leaves` for every server, whether or not anything shows them, starting from when this shipped. Kicks and bans count as leaving, since Discord reports them the same way, and leaves while Golem is offline are missed.
 
 ## Restoring roles

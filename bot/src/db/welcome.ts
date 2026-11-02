@@ -8,12 +8,20 @@ export type WelcomeSettings = Omit<typeof welcomeSettings.$inferSelect, 'guildId
 const defaults: WelcomeSettings = {
 	enabled: false,
 	channelId: null,
-	message: DEFAULT_WELCOME_MESSAGE
+	message: DEFAULT_WELCOME_MESSAGE,
+	pingMentions: false
 };
 
 export function getWelcome(guildId: string): WelcomeSettings {
 	const row = db.select().from(welcomeSettings).where(eq(welcomeSettings.guildId, guildId)).get();
-	return row ? { enabled: row.enabled, channelId: row.channelId, message: row.message } : defaults;
+	return row
+		? {
+				enabled: row.enabled,
+				channelId: row.channelId,
+				message: row.message,
+				pingMentions: row.pingMentions
+			}
+		: defaults;
 }
 
 export function updateWelcome(guildId: string, changes: Partial<WelcomeSettings>): void {

@@ -1,0 +1,1 @@
+ALTER TABLE `welcome_settings` ADD `ping_mentions` integer DEFAULT true NOT NULL;

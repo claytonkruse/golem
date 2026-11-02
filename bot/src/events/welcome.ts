@@ -21,11 +21,14 @@ export const event = {
 
 		const content = renderWelcome(
 			welcome.message,
-			welcomeValues(member, await joinDetails(member))
+			await welcomeValues(member, await joinDetails(member))
 		);
 		try {
-			// Pings the new member only; {inviter} and anything typed in the message stay silent.
-			await channel.send({ content, allowedMentions: { users: [member.id] } });
+			// Users can ping, when the server allows it; roles, @everyone and @here never do.
+			await channel.send({
+				content,
+				allowedMentions: { parse: welcome.pingMentions ? ['users'] : [] }
+			});
 		} catch (error) {
 			console.error(`Could not send a welcome message in ${member.guild.id}.`, error);
 		}

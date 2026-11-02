@@ -29,6 +29,11 @@ export const actions: Actions = {
 		}
 		updateWelcome(guild.id, { enabled });
 	},
+	pings: async (event) => {
+		const guild = await joinedGuild(event, event.params.guild);
+		const form = await event.request.formData();
+		updateWelcome(guild.id, { pingMentions: form.has('enabled') });
+	},
 	save: async (event) => {
 		const guild = await joinedGuild(event, event.params.guild);
 		const form = await event.request.formData();

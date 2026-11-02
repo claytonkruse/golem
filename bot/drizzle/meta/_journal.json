@@ -113,6 +113,20 @@
       "when": 1793647327292,
       "tag": "0015_restore_role_removals",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1793649389966,
+      "tag": "0016_welcome_ping_mentions",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1793649419012,
+      "tag": "0017_welcome_pings_off",
+      "breakpoints": true
     }
   ]
 }

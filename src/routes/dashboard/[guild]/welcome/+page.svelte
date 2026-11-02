@@ -30,6 +30,7 @@
 				server: escapeDiscordMarkdown(page.data.guild.name),
 				membercount: '128',
 				inviter: '<@inviter>',
+				invitername: 'inviter',
 				invitecount: '5',
 				leavecount: '1'
 			}),
@@ -90,6 +91,13 @@
 			description={channelSaved
 				? 'Posts the message below whenever someone joins. Apps added to the server are not welcomed.'
 				: 'Pick a channel and save the message first.'}
+		/>
+		<SettingSwitch
+			action="?/pings"
+			id="welcome-pings"
+			checked={data.welcome.pingMentions}
+			label="Ping mentioned members"
+			description={'Members mentioned in the message, like {user} and {inviter}, get a notification. Off, the mentions still show but nobody is pinged. Roles, @everyone and @here never ping.'}
 		/>
 		<form
 			method="POST"
@@ -154,8 +162,9 @@
 	<Card.Header>
 		<Card.Title>Variables</Card.Title>
 		<Card.Description>
-			Type these in the message, braces included. {'{inviter}'} and {'{invitecount}'} need Golem to have
-			the Manage Server permission, since Discord only shows invites to members who have it.
+			Type these in the message, braces included. {'{inviter}'}, {'{invitername}'} and {'{invitecount}'}
+			need Golem to have the Manage Server permission, since Discord only shows invites to members who
+			have it.
 		</Card.Description>
 	</Card.Header>
 	<Card.Content>

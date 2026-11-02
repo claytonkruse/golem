@@ -45,13 +45,15 @@ async function set(interaction: ChatInputCommandInteraction<'cached'>): Promise<
 	}
 	// Slash command options are one line, so \n stands for a line break.
 	const message = interaction.options.getString('message')?.replaceAll('\\n', '\n');
+	const pingMentions = interaction.options.getBoolean('ping');
 
 	// Settings belong to a server row, which may not exist yet if Golem joined while offline.
 	addGuilds([{ id: guild.id, joinedAt: guild.joinedAt }]);
 	updateWelcome(guild.id, {
 		enabled: true,
 		channelId: channel.id,
-		...(message ? { message } : {})
+		...(message ? { message } : {}),
+		...(pingMentions === null ? {} : { pingMentions })
 	});
 	await reply(
 		interaction,
@@ -64,10 +66,13 @@ async function show(interaction: ChatInputCommandInteraction<'cached'>): Promise
 	const status = welcome.enabled
 		? `On, in ${welcome.channelId ? channelMention(welcome.channelId) : 'no channel yet'}.`
 		: 'Off. Turn it on with /welcome set.';
+	const pings = welcome.pingMentions
+		? 'Mentioned members are pinged.'
+		: 'Mentions don’t ping anyone.';
 	// Shown as if the person running the command had just joined, with an unknown inviter.
 	const preview = renderWelcome(
 		welcome.message,
-		welcomeValues(interaction.member, {
+		await welcomeValues(interaction.member, {
 			invite: null,
 			inviterCount: null,
 			leaves: countLeaves(interaction.guildId, interaction.user.id)
@@ -77,7 +82,7 @@ async function show(interaction: ChatInputCommandInteraction<'cached'>): Promise
 		(variable) => `\`{${variable.key}}\` ${variable.description}`
 	);
 	const content = [
-		`**Welcome message:** ${status}`,
+		`**Welcome message:** ${status} ${pings}`,
 		codeBlock(welcome.message.replaceAll('`', 'ˋ')),
 		`**Preview for you:**\n${preview}`,
 		`**Variables**\n${variables.join('\n')}`,
@@ -115,6 +120,13 @@ export const command = {
 							'Use {user}, {server}, {inviter}, {invitecount}, {leavecount}… and \\n for a new line'
 						)
 						.setMaxLength(MAX_WELCOME_LENGTH)
+				)
+				.addBooleanOption((option) =>
+					option
+						.setName('ping')
+						.setDescription(
+							'Whether members mentioned in the message are pinged (off to start with)'
+						)
 				)
 		)
 		.addSubcommand((sub) => sub.setName('off').setDescription('Stop welcoming new members.'))

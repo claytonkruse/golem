@@ -16,6 +16,11 @@ export const welcomeVariables = [
 			'Mentions who invited them, without pinging. "someone" when Golem can\'t tell, and "the vanity link" for the server\'s vanity URL.'
 	},
 	{
+		key: 'invitername',
+		description:
+			'The inviter\'s Discord username, without a mention. "someone" and "the vanity link" like {inviter}.'
+	},
+	{
 		key: 'invitecount',
 		description:
 			'How many people the inviter has brought in who are still here, counting this one. "?" when the inviter is unknown.'
@@ -30,7 +35,7 @@ export type WelcomeVariable = (typeof welcomeVariables)[number]['key'];
 export type WelcomeValues = Record<WelcomeVariable, string>;
 
 // Variables that need Golem to work out which invite was used.
-const INVITE_VARIABLES = /\{(inviter|invitecount)\}/i;
+const INVITE_VARIABLES = /\{(inviter|invitername|invitecount)\}/i;
 const VARIABLE = /\{(\w+)\}/g;
 const known = new Set<string>(welcomeVariables.map((variable) => variable.key));
 

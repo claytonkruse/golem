@@ -61,12 +61,20 @@ export function forgetJoin(member: GuildMember | PartialGuildMember): void {
 }
 
 // The welcome message variables for this member.
-export function welcomeValues(member: GuildMember, details: JoinDetails): WelcomeValues {
+export async function welcomeValues(
+	member: GuildMember,
+	details: JoinDetails
+): Promise<WelcomeValues> {
 	const invite = details.invite;
 	let inviter = 'someone';
-	if (invite?.kind === 'invite' && invite.inviterId) inviter = userMention(invite.inviterId);
-	else if (invite?.kind === 'vanity') inviter = 'the vanity link';
-	// Names are escaped so Discord shows them as typed, like a_b_c without italics.
+	let inviterName = 'someone';
+	if (invite?.kind === 'invite' && invite.inviterId) {
+		inviter = userMention(invite.inviterId);
+		const user = await member.client.users.fetch(invite.inviterId).catch(() => null);
+		if (user) inviterName = escapeMarkdown(user.username);
+	} else if (invite?.kind === 'vanity') {
+		inviter = inviterName = 'the vanity link';
+	}
 	return {
 		user: userMention(member.id),
 		username: escapeMarkdown(member.user.username),
@@ -78,6 +86,7 @@ export function welcomeValues(member: GuildMember, details: JoinDetails): Welcom
 		}),
 		membercount: String(member.guild.memberCount),
 		inviter,
+		invitername: inviterName,
 		invitecount: details.inviterCount === null ? '?' : String(details.inviterCount),
 		leavecount: String(details.leaves)
 	};

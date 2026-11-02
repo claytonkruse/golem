@@ -124,7 +124,10 @@ export const welcomeSettings = sqliteTable('welcome_settings', {
 	enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
 	channelId: text('channel_id'),
 	// A template with {variables}, listed in bot/src/lib/welcome.ts.
-	message: text('message').notNull()
+	message: text('message').notNull(),
+	// Whether user mentions in the message ping, including {user} and {inviter}. Off until
+	// turned on. Roles, @everyone and @here never ping.
+	pingMentions: integer('ping_mentions', { mode: 'boolean' }).notNull().default(false)
 });
 
 // XP members earn by chatting in one server. Kept when they leave, so it comes back if
