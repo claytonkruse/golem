@@ -36,6 +36,17 @@
 		</div>
 	</Card.Content>
 </Card.Root>
+<Card.Root>
+	<Card.Content>
+		<SettingSwitch
+			action="?/inviterXp"
+			id="inviter-xp"
+			checked={data.inviterXp}
+			label="Reward inviters with XP"
+			description="When a member earns XP here, whoever invited the member gets an extra 10% of it, rounded, in both this server's levels and global levels, without the member losing any. Only invites Golem tracked count, and only while the inviter is still in the server. On by default."
+		/>
+	</Card.Content>
+</Card.Root>
 {#if data.commandXp !== null}
 	<Card.Root>
 		<Card.Content>

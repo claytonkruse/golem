@@ -148,6 +148,13 @@
       "when": 1793651800111,
       "tag": "0020_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1793653554232,
+      "tag": "0021_inviter_xp",
+      "breakpoints": true
     }
   ]
 }

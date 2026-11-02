@@ -11,6 +11,7 @@ export const load: PageServerLoad = async (event) => {
 	return {
 		enabled: settings.levelCommands,
 		commands: levelCommands,
+		inviterXp: settings.inviterXp,
 		switches: levelCommandSwitches(guild.id),
 		// The command-XP switch is hidden while COMMAND_XP_SETTING is off in bot/src/lib/levels.ts.
 		commandXp: COMMAND_XP_SETTING ? settings.commandXp : null
@@ -31,6 +32,11 @@ export const actions: Actions = {
 		const command = String(form.get('command') ?? '');
 		if (!isLevelCommand(command)) return fail(400, { message: 'Unknown command.' });
 		setLevelCommandEnabled(guild.id, command, form.has('enabled'));
+	},
+	inviterXp: async (event) => {
+		const guild = await joinedGuild(event, event.params.guild);
+		const form = await event.request.formData();
+		updateGuildSettings(guild.id, { inviterXp: form.has('enabled') });
 	},
 	settings: async (event) => {
 		if (!COMMAND_XP_SETTING) error(404, 'Not found');

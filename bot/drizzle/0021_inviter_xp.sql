@@ -1,0 +1,1 @@
+ALTER TABLE `guild_settings` ADD `inviter_xp` integer DEFAULT true NOT NULL;

@@ -31,6 +31,26 @@ export function awardMemberXp(
 	return result.changes > 0;
 }
 
+// Adds XP with no cooldown, leaving the member's own cooldown as it was. A new row starts with
+// no recent award, so the member's next message still earns as usual.
+export function addMemberXp(guildId: string, userId: string, amount: number): void {
+	db.insert(memberXp)
+		.values({ guildId, userId, xp: amount, lastAwardAt: new Date(0) })
+		.onConflictDoUpdate({
+			target: [memberXp.guildId, memberXp.userId],
+			set: { xp: sql`${memberXp.xp} + ${amount}` }
+		})
+		.run();
+}
+
+// The global version of addMemberXp: no cooldown, and the user's own cooldown is left alone.
+export function addUserXp(userId: string, amount: number): void {
+	db.insert(userXp)
+		.values({ userId, xp: amount, lastAwardAt: new Date(0) })
+		.onConflictDoUpdate({ target: userXp.userId, set: { xp: sql`${userXp.xp} + ${amount}` } })
+		.run();
+}
+
 export function awardUserXp(userId: string, amount: number, cooldownMs: number): boolean {
 	const now = new Date();
 	const result = db

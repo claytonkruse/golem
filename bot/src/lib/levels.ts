@@ -2,6 +2,8 @@
 // than the last, so level 1 takes 100 XP and level 10 about 6,000 in total.
 
 export const XP_COOLDOWN_MS = 60_000;
+// The share of a member's server and global XP that the member's inviter also gets, rounded.
+export const INVITER_XP_SHARE = 0.1;
 export const XP_PER_MESSAGE = { min: 15, max: 25 };
 
 // Whether servers may turn off server XP for slash commands (the dashboard's "Count

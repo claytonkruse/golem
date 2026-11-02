@@ -6,6 +6,7 @@ export type GuildSettings = Omit<typeof guildSettings.$inferSelect, 'guildId'>;
 
 const defaults: GuildSettings = {
 	commandXp: true,
+	inviterXp: true,
 	levelCommands: false,
 	gamesEnabled: false,
 	restoreRoles: false,
@@ -18,6 +19,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
 	return row
 		? {
 				commandXp: row.commandXp,
+				inviterXp: row.inviterXp,
 				levelCommands: row.levelCommands,
 				gamesEnabled: row.gamesEnabled,
 				restoreRoles: row.restoreRoles,

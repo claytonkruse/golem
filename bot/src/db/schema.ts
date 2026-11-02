@@ -229,6 +229,8 @@ export const guildSettings = sqliteTable('guild_settings', {
 	// The master switch for /level, /rank and their global versions here. Off until a server
 	// manager turns it on; XP is earned either way.
 	levelCommands: integer('level_commands', { mode: 'boolean' }).notNull().default(false),
+	// Whether the person who invited a member gets a share of the XP that member earns here.
+	inviterXp: integer('inviter_xp', { mode: 'boolean' }).notNull().default(true),
 	// The master switch for games in this server. Off until a server manager turns it on.
 	gamesEnabled: integer('games_enabled', { mode: 'boolean' }).notNull().default(false),
 	// Whether members who leave get their roles back when they rejoin. Off until turned on.
