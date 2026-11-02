@@ -1,0 +1,1 @@
+ALTER TABLE `guild_settings` ADD `level_commands` integer DEFAULT true NOT NULL;

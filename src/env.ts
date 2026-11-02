@@ -8,6 +8,10 @@ export const variables = defineEnvVars({
 		description:
 			'Developer portal → OAuth2 → Client Secret. Needed for dashboard sign-in; the landing page works without it.'
 	},
+	DISCORD_BOT_TOKEN: {
+		schema: optional,
+		description: "The bot's token. The dashboard uses it to list a server's channels."
+	},
 	DISCORD_CLIENT_ID: {
 		schema: optional,
 		description: 'Overrides applicationId in config.yaml, like it does for the bot.'

@@ -8,7 +8,7 @@
 	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
 	import BellOff from '@tabler/icons-svelte/icons/bell-off';
 	import BrandDiscord from '@tabler/icons-svelte/icons/brand-discord';
-	import LayoutDashboard from '@tabler/icons-svelte/icons/layout-dashboard';
+	import Gauge from '@tabler/icons-svelte/icons/gauge';
 	import Lock from '@tabler/icons-svelte/icons/lock';
 	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
 	import Slash from '@tabler/icons-svelte/icons/slash';
@@ -67,7 +67,7 @@
 				{#if data.user}
 					<img src={data.user.avatarUrl} alt="" class="size-4 rounded-full" />
 				{:else}
-					<LayoutDashboard data-icon="inline-start" />
+					<Gauge data-icon="inline-start" />
 				{/if}
 				Dashboard
 			</Button>
@@ -76,7 +76,7 @@
 	</SiteHeader>
 
 	<main class="flex-1">
-		<!-- isolate keeps the glow behind the hero; -top-14 reaches up under the see-through header. -->
+		<!-- isolate keeps the glow behind the hero; -top-14 reaches up behind the header, which has no background. -->
 		<div class="relative isolate">
 			<div
 				aria-hidden="true"

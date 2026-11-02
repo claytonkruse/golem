@@ -1,30 +1,19 @@
 <script lang="ts">
-	import SiteHeader from '#lib/components/site-header.svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
-	import Logout from '@tabler/icons-svelte/icons/logout';
+	import ServerRail from '#lib/components/dashboard/server-rail.svelte';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 
-	let { data, children } = $props();
+	let { children } = $props();
 </script>
 
-<div class="flex min-h-screen flex-col">
-	<SiteHeader>
-		{#snippet actions()}
-			{#if data.user}
-				<span class="ml-1 hidden items-center gap-2 text-xs font-medium sm:flex">
-					<img src={data.user.avatarUrl} alt="" class="size-6 rounded-full" />
-					{data.user.name}
-				</span>
-				<form method="POST" action="/auth/logout/" class="ml-1">
-					<Button type="submit" variant="ghost">
-						<Logout data-icon="inline-start" />
-						Sign out
-					</Button>
-				</form>
-			{/if}
-		{/snippet}
-	</SiteHeader>
-
-	<main class="mx-auto w-full max-w-5xl flex-1 px-4 pt-10 pb-20 sm:px-6">
-		{@render children()}
-	</main>
-</div>
+<!-- Laid out like Discord's app: the server rail, then each page brings its own second
+     column (see ChannelSidebar) and content. -->
+<Tooltip.Provider>
+	<div class="flex h-svh overflow-hidden bg-background">
+		<div class="hidden md:flex">
+			<ServerRail />
+		</div>
+		<div class="flex min-w-0 flex-1">
+			{@render children()}
+		</div>
+	</div>
+</Tooltip.Provider>

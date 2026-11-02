@@ -69,3 +69,10 @@ export async function managedGuild(event: SessionEvent, id: string): Promise<Man
 	if (!guild) error(404, 'Server not found');
 	return guild;
 }
+
+// A server the person can manage and Golem is in: what every settings page and action needs.
+export async function joinedGuild(event: SessionEvent, id: string): Promise<ManagedGuild> {
+	const guild = await managedGuild(event, id);
+	if (!guild.joinedAt) error(404, 'Golem is not in this server.');
+	return guild;
+}

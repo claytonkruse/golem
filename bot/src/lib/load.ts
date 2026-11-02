@@ -6,7 +6,10 @@ import type { Event } from './event.ts';
 
 async function sourceFiles(directory: string): Promise<string[]> {
 	const entries = await readdir(directory);
-	return entries.filter((file) => file.endsWith('.ts') && !file.endsWith('.d.ts')).sort();
+	// Dotfiles are skipped so editor and macOS metadata files (._ping.ts) never load.
+	return entries
+		.filter((file) => file.endsWith('.ts') && !file.endsWith('.d.ts') && !file.startsWith('.'))
+		.sort();
 }
 
 function isCommand(value: unknown): value is Command {
@@ -49,11 +52,14 @@ export async function loadEvents(): Promise<Event[]> {
 	for (const file of await sourceFiles(directory)) {
 		const mod = (await import(pathToFileURL(path.join(directory, file)).href)) as {
 			event?: unknown;
+			events?: unknown;
 		};
-		if (!isEvent(mod.event)) {
-			throw new Error(`${file} must export \`event\` with name and execute.`);
+		// A file exports one `event`, or an `events` array to group related handlers.
+		const exported = mod.events ?? [mod.event];
+		if (!Array.isArray(exported) || exported.length === 0 || !exported.every(isEvent)) {
+			throw new Error(`${file} must export \`event\` or \`events\` with name and execute.`);
 		}
-		events.push(mod.event);
+		events.push(...exported);
 	}
 
 	return events;

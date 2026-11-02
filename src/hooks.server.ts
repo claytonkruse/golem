@@ -1,12 +1,16 @@
+import { building } from '$app/env';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { deleteExpiredSessions, findSession } from '#bot/db/sessions.ts';
 import { avatarUrl } from '#lib/server/discord.js';
 import { clearSessionCookie, SESSION_COOKIE } from '#lib/server/session-cookie.js';
 
 // Expired sessions are also dropped when they are next used. This catches the ones
-// nobody comes back to.
-deleteExpiredSessions();
-setInterval(deleteExpiredSessions, 60 * 60 * 1000).unref();
+// nobody comes back to. Skipped during `vite build`, which loads this file with no
+// migrated database to query.
+if (!building) {
+	deleteExpiredSessions();
+	setInterval(deleteExpiredSessions, 60 * 60 * 1000).unref();
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const token = event.cookies.get(SESSION_COOKIE);

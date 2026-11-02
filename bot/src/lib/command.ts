@@ -1,5 +1,6 @@
 import {
 	ApplicationCommandOptionType,
+	type ButtonInteraction,
 	type ChatInputCommandInteraction,
 	type RESTPostAPIChatInputApplicationCommandsJSONBody,
 	type SlashCommandBuilder,
@@ -13,6 +14,8 @@ export type CommandData =
 export type Command = {
 	data: CommandData;
 	execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+	// Buttons whose custom id starts with "<command name>:" are sent here.
+	button?: (interaction: ButtonInteraction) => Promise<void>;
 };
 
 export type CommandSummary = {

@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 // Discord ids are text: snowflakes exceed Number.MAX_SAFE_INTEGER, and text maps
 // the same way if this ever moves to Postgres.
@@ -21,3 +21,144 @@ export const sessions = sqliteTable('sessions', {
 	accessToken: text('access_token').notNull(),
 	expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull()
 });
+
+// Which channels each event is logged to. Deleted with the server's row when Golem
+// leaves, so no settings linger for servers it is no longer in.
+export const logChannels = sqliteTable(
+	'log_channels',
+	{
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		event: text('event').notNull(),
+		channelId: text('channel_id').notNull()
+	},
+	(table) => [
+		primaryKey({ columns: [table.guildId, table.event, table.channelId] }),
+		// For removing a deleted channel from every event.
+		index('log_channels_channel_id_idx').on(table.channelId)
+	]
+);
+
+// Switches that change what an event's log shows, such as who invited a new member.
+// A row means the switch is on.
+export const logOptions = sqliteTable(
+	'log_options',
+	{
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		event: text('event').notNull(),
+		option: text('option').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.guildId, table.event, table.option] })]
+);
+
+// Who invited each member Golem traced, so "x has now invited N of our members" can
+// count only people who are still here. A member's row is removed when they leave.
+export const inviteJoins = sqliteTable(
+	'invite_joins',
+	{
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		memberId: text('member_id').notNull(),
+		inviterId: text('inviter_id').notNull(),
+		inviteCode: text('invite_code').notNull(),
+		joinedAt: integer('joined_at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [
+		primaryKey({ columns: [table.guildId, table.memberId] }),
+		index('invite_joins_inviter_idx').on(table.guildId, table.inviterId)
+	]
+);
+
+// XP members earn by chatting in one server. Kept when they leave, so it comes back if
+// they rejoin; deleted with the server's row when Golem leaves.
+export const memberXp = sqliteTable(
+	'member_xp',
+	{
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		userId: text('user_id').notNull(),
+		xp: integer('xp').notNull(),
+		lastAwardAt: integer('last_award_at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [
+		primaryKey({ columns: [table.guildId, table.userId] }),
+		index('member_xp_rank_idx').on(table.guildId, table.xp)
+	]
+);
+
+// XP earned across every server, with its own cooldown so being in more servers does
+// not mean levelling faster.
+export const userXp = sqliteTable(
+	'user_xp',
+	{
+		userId: text('user_id').primaryKey(),
+		xp: integer('xp').notNull(),
+		lastAwardAt: integer('last_award_at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [index('user_xp_rank_idx').on(table.xp)]
+);
+
+// Server-wide settings, one row per server. A missing row means every default.
+export const guildSettings = sqliteTable('guild_settings', {
+	guildId: text('guild_id')
+		.primaryKey()
+		.references(() => guilds.id, { onDelete: 'cascade' }),
+	// Whether using Golem's slash commands earns server XP. Global XP always counts them.
+	commandXp: integer('command_xp', { mode: 'boolean' }).notNull().default(true),
+	// The master switch for /level, /rank and their global versions here. Off until a server
+	// manager turns it on; XP is earned either way.
+	levelCommands: integer('level_commands', { mode: 'boolean' }).notNull().default(false),
+	// The master switch for games in this server. Off until a server manager turns it on.
+	gamesEnabled: integer('games_enabled', { mode: 'boolean' }).notNull().default(false)
+});
+
+// Chips, the currency games are played with. One balance per person, shared across
+// servers and DMs. A row appears the first time someone uses chips.
+export const chipBalances = sqliteTable('chip_balances', {
+	userId: text('user_id').primaryKey(),
+	chips: integer('chips').notNull(),
+	lastDailyAt: integer('last_daily_at', { mode: 'timestamp_ms' })
+});
+
+// Chips set aside for a game that hasn't finished. Settling the game deletes the row;
+// any rows left at startup belong to games a restart cut short and are refunded.
+export const chipHolds = sqliteTable('chip_holds', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	userId: text('user_id').notNull(),
+	game: text('game').notNull(),
+	amount: integer('amount').notNull(),
+	createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull()
+});
+
+// Per-game switches under the master one. A missing row means the game is on, so turning
+// games on enables every game, including ones added later.
+export const guildGames = sqliteTable(
+	'guild_games',
+	{
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		game: text('game').notNull(),
+		enabled: integer('enabled', { mode: 'boolean' }).notNull()
+	},
+	(table) => [primaryKey({ columns: [table.guildId, table.game] })]
+);
+
+// Per-command switches under the leveling master switch. A missing row means the command
+// is on, so turning leveling on enables every command.
+export const guildLevelCommands = sqliteTable(
+	'guild_level_commands',
+	{
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		command: text('command').notNull(),
+		enabled: integer('enabled', { mode: 'boolean' }).notNull()
+	},
+	(table) => [primaryKey({ columns: [table.guildId, table.command] })]
+);

@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { clientId, clientSecret } from './config.ts';
+import { botToken, clientId, clientSecret } from './config.ts';
 
 const API = 'https://discord.com/api/v10';
 const CDN = 'https://cdn.discordapp.com';
@@ -48,6 +48,23 @@ export function authorizeUrl(redirectUri: string, state: string): string {
 
 function basicAuth(): string {
 	return `Basic ${Buffer.from(`${clientId}:${clientSecret()}`).toString('base64')}`;
+}
+
+// Discord's 429s say how long to wait. Short waits are cheaper to sit out than to fail the
+// page over, so one retry is made when the wait is a few seconds at most.
+const MAX_RETRY_WAIT_MS = 5_000;
+
+async function discordFetch(url: string, init: RequestInit): Promise<Response> {
+	const response = await fetch(url, init);
+	if (response.status !== 429) return response;
+	const body = (await response
+		.clone()
+		.json()
+		.catch(() => null)) as { retry_after?: number } | null;
+	const waitMs = (body?.retry_after ?? Number(response.headers.get('retry-after'))) * 1000;
+	if (!(waitMs >= 0 && waitMs <= MAX_RETRY_WAIT_MS)) return response;
+	await new Promise((resolve) => setTimeout(resolve, waitMs));
+	return fetch(url, init);
 }
 
 async function discordJson<T>(response: Response, what: string): Promise<T> {
@@ -104,24 +121,82 @@ export async function fetchUser(accessToken: string): Promise<DiscordUser> {
 }
 
 // Discord rate limits this endpoint per user, and every dashboard page needs it, so
-// each session's list is reused for a minute.
+// each session's list is reused for a minute. SvelteKit runs a page's loads in parallel,
+// so the request itself is shared too: otherwise the layouts and the page each miss the
+// cache at once and the second or third call gets a 429.
 const GUILD_CACHE_MS = 60_000;
-const guildCache = new Map<string, { at: number; guilds: DiscordGuild[] }>();
+type GuildEntry = { at: number; guilds: Promise<DiscordGuild[]>; last?: DiscordGuild[] };
+const guildCache = new Map<string, GuildEntry>();
 
 export async function fetchGuilds(accessToken: string): Promise<DiscordGuild[]> {
 	const cached = guildCache.get(accessToken);
 	if (cached && Date.now() - cached.at < GUILD_CACHE_MS) return cached.guilds;
 
-	const response = await fetch(`${API}/users/@me/guilds`, {
+	for (const [token, entry] of guildCache) {
+		if (Date.now() - entry.at >= GUILD_CACHE_MS * 10) guildCache.delete(token);
+	}
+	const entry: GuildEntry = { at: Date.now(), guilds: loadGuilds(accessToken), last: cached?.last };
+	guildCache.set(accessToken, entry);
+	try {
+		entry.last = await entry.guilds;
+		return entry.last;
+	} catch (cause) {
+		// A failed request isn't cached, so the next page load tries again. While Discord is
+		// rate limiting, a list from the last few minutes is better than an error page.
+		if (guildCache.get(accessToken) === entry) {
+			if (entry.last)
+				guildCache.set(accessToken, { ...entry, guilds: Promise.resolve(entry.last) });
+			else guildCache.delete(accessToken);
+		}
+		if (entry.last && !(cause instanceof DiscordUnauthorized)) return entry.last;
+		throw cause;
+	}
+}
+
+async function loadGuilds(accessToken: string): Promise<DiscordGuild[]> {
+	const response = await discordFetch(`${API}/users/@me/guilds`, {
 		headers: { Authorization: `Bearer ${accessToken}` }
 	});
-	const guilds = await discordJson<DiscordGuild[]>(response, 'list your servers');
+	return discordJson<DiscordGuild[]>(response, 'list your servers');
+}
 
-	for (const [token, entry] of guildCache) {
-		if (Date.now() - entry.at >= GUILD_CACHE_MS) guildCache.delete(token);
+export type DiscordChannel = {
+	id: string;
+	name: string;
+	type: number;
+	position: number;
+	parent_id: string | null;
+};
+
+// Golem's view of a server's channels. Short cache: it only saves repeat requests while
+// someone is clicking through the settings. Shared while in flight, like the server list.
+const CHANNEL_CACHE_MS = 15_000;
+const channelCache = new Map<string, { at: number; channels: Promise<DiscordChannel[]> }>();
+
+export async function fetchGuildChannels(guildId: string): Promise<DiscordChannel[]> {
+	const cached = channelCache.get(guildId);
+	if (cached && Date.now() - cached.at < CHANNEL_CACHE_MS) return cached.channels;
+
+	for (const [id, entry] of channelCache) {
+		if (Date.now() - entry.at >= CHANNEL_CACHE_MS) channelCache.delete(id);
 	}
-	guildCache.set(accessToken, { at: Date.now(), guilds });
-	return guilds;
+	const entry = { at: Date.now(), channels: loadChannels(guildId) };
+	channelCache.set(guildId, entry);
+	try {
+		return await entry.channels;
+	} catch (cause) {
+		if (channelCache.get(guildId) === entry) channelCache.delete(guildId);
+		throw cause;
+	}
+}
+
+async function loadChannels(guildId: string): Promise<DiscordChannel[]> {
+	const response = await discordFetch(`${API}/guilds/${guildId}/channels`, {
+		headers: { Authorization: `Bot ${botToken()}` }
+	});
+	// 401 here means the bot token is wrong, not that the person's session ended.
+	if (response.status === 401) error(500, 'The dashboard has the wrong bot token.');
+	return discordJson<DiscordChannel[]>(response, "list this server's channels");
 }
 
 export function forgetGuilds(accessToken: string): void {

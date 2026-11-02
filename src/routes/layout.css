@@ -21,6 +21,8 @@
 	--accent: oklch(0.518 0.253 323.949);
 	--accent-foreground: oklch(0.977 0.017 320.058);
 	--destructive: oklch(0.577 0.245 27.325);
+	/* Requirement and caution icons; above the 3:1 icons need against the background. */
+	--warning: oklch(0.646 0.222 41.116);
 	--border: oklch(0.922 0.005 325.62);
 	--input: oklch(0.922 0.005 325.62);
 	--ring: oklch(0.711 0.019 323.02);
@@ -58,6 +60,7 @@
 	--accent: oklch(0.452 0.211 324.591);
 	--accent-foreground: oklch(0.977 0.017 320.058);
 	--destructive: oklch(0.704 0.191 22.216);
+	--warning: oklch(0.75 0.183 55.934);
 	--border: oklch(1 0 0 / 10%);
 	--input: oklch(1 0 0 / 15%);
 	--ring: oklch(0.542 0.034 322.5);
@@ -97,6 +100,7 @@
 	--color-input: var(--input);
 	--color-border: var(--border);
 	--color-destructive: var(--destructive);
+	--color-warning: var(--warning);
 	--color-accent-foreground: var(--accent-foreground);
 	--color-accent: var(--accent);
 	--color-muted-foreground: var(--muted-foreground);

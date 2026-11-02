@@ -42,9 +42,64 @@ Golem uses SQLite through [Drizzle ORM](https://orm.drizzle.team/) and `better-s
 - Only the bot and `pnpm db:migrate` apply migrations. Drizzle's migrator isn't safe to run from two processes at once.
 - Back up the database with Litestream or `sqlite3 data/golem.db ".backup backup.db"`. Copying the file while the bot runs can miss writes still in the `-wal` file.
 
+## Event logging
+
+Servers pick channels for each of 22 events, grouped as server changes, moderation, members and messages. `bot/src/lib/log-events.ts` lists them; its keys are stored in the database, so never rename one.
+
+- `/loghere <event>` logs an event (or `all`) in the current channel, `/logstop <event>` stops it, and `/logs` lists the setup. All three need Manage Server by default.
+- The dashboard's server page edits the same `log_channels` table, so changes from either side apply to the next event.
+- Handlers live in `bot/src/events/log-*.ts` and post through `sendLog` in `bot/src/lib/logging.ts`, which skips channels where Golem lacks View Channel, Send Messages or Embed Links and forgets channels that no longer exist.
+- Deleted and edited messages include their text only if Golem saw the message arrive. Cached messages are swept after six hours.
+- Logs don't say who made a change; that would need View Audit Log and an audit log lookup per event.
+
+Logging uses two privileged intents. Turn on **Server Members Intent** and **Message Content Intent** under **Bot** in the developer portal, or the bot fails to log in with "Used disallowed intents". Past 100 servers, Discord has to verify Golem and approve both.
+
+## Moderation
+
+`/purge amount:<1–100> [user]` deletes the most recent messages in the channel, or with `user` that member's most recent ones, looking back up to 1,000 messages. It needs Manage Messages by default, and Golem needs View Channel, Read Message History and Manage Messages in the channel; the invite link doesn't ask for them, so the reply names any that are missing. Pinned messages are kept, and Discord doesn't let bots bulk-delete messages older than 14 days. Purges show up in event logs as "Messages purged".
+
+## Leveling
+
+Members earn 15–25 XP per message or use of a Golem slash command, at most once a minute, separately for each server and for a global total. Bots, webhooks, system messages and anything in DMs earn nothing.
+
+- Leveling commands are **off by default in every server**. The dashboard's Leveling page has a master switch (`guild_settings.level_commands`) and a switch per command (`guild_level_commands`, listed in `levelCommands` in `bot/src/lib/levels.ts`). A command that's off replies privately that it's off there. Members earn XP in the server either way, and the commands always work in DMs.
+- Servers can't turn off XP for commands right now. The switch, its `guild_settings.command_xp` column and the dashboard action still exist behind `COMMAND_XP_SETTING` in `bot/src/lib/levels.ts`; set it to `true` to bring the switch back. Commands always count toward global XP.
+
+- `/level` replies with a card showing your level and progress toward the next one; `/rank` replies with a card showing your place large and your level smaller. In a DM with Golem they show the global numbers, the same as `/globallevel` and `/globalrank`.
+- `/leaderboard` shows the server's top members ten to a page, and `/globalleaderboard` the top across every server (also what `/leaderboard` shows in a DM). The server board uses nicknames and lists people who have left under their Discord name; the global board always uses Discord names. Previous/Next buttons page through it, and only the person who ran the command can press them. Their custom id carries the scope, owner and page, so they keep working across restarts, and they obey the same switches as the commands. Your row is highlighted; if you're not on the page, the footer says where you are. Drawn by `bot/src/lib/leaderboard-card.ts`.
+- Levels follow the curve most leveling bots use: level L needs `5L² + 50L + 100` more XP (`bot/src/lib/levels.ts`). Ties share a rank.
+- The card is drawn by `bot/src/lib/level-card.ts` with satori (layout and text) and resvg (PNG), using the Outfit font from `@fontsource/outfit`, so it needs no system fonts. Scripts other than Latin and emoji in names render blank.
+- Server XP is kept when someone leaves and deleted when Golem leaves the server.
+
+## Games
+
+Games are **off by default in every server**. The dashboard's Games section has a master switch and a switch per game (`guild_settings.games_enabled` and `guild_games`, checked by `gameBlocked` in `bot/src/db/guild-games.ts`); while a game is off, starting it or pressing Play again / Cast again replies privately that it's off, and a game already in progress finishes. DMs with Golem are always allowed. New games go in `bot/src/lib/games.ts` and get a switch automatically. Discord still lists the commands in servers where they're off.
+
+Games are played for **chips**, one balance per person shared across servers and DMs. Everyone starts with 1,000; `/daily` gives 200 more every 24 hours and `/chips` shows the balance. The name and amounts live in `bot/src/lib/chips.ts`.
+
+`/blackjack bet:<chips>` deals a hand (leave `bet` out to play for fun, with no chips involved) and replies with an image of the table plus Hit, Stand and Double down buttons. Only the player who started a game can press them, and a finished hand offers **Play again** at the same bet. Play again and fishing's Cast again start the next game in a new message, leaving the finished one with its result; `bot/src/lib/messages.ts` posts it and makes sure each finished message starts only one game.
+
+- Wins pay 1:1, a natural blackjack pays 3:2 (rounded down) and a push returns the bet. The dealer stands on every 17, a natural on the deal ends the hand at once, and doubling down is allowed on the first two cards. Splitting isn't supported yet. Each game uses a fresh deck shuffled with `crypto.randomInt`.
+- Cards arrive one at a time, 0.7 seconds apart (`animation.delayMs`), through a few message edits: the opening deal, then the hole card turning over and each dealer draw after you stand. The hand is decided and paid before the cards finish arriving; the frames only show it.
+- A bet is taken when the hand is dealt and kept in `chip_holds` until it settles. Games live in memory, so a restart refunds every open hold at startup; a hand idle for 5 minutes stands automatically and settles.
+  `/fish` casts a line: Golem shows an animated GIF of fish swimming under a bobber, and after 3–8 seconds swaps it for the bite, with the line pulled tight to the left, down or to the right. The player has 4.5 seconds to press the matching button. The fish is one of nine species from common to legendary (50/30/14/5/1 in 100) with a random weight, and rarer fish fight longer: common fish take 1–3 correct pulls, legendary ones 7–9. Each pull sends the line a new direction with a fresh clock and progress dots in the corner; a wrong or late pull loses the fish and reveals what it was. Catches aren't saved or worth chips yet.
+
+- The scenes are plain SVG rendered by resvg (`bot/src/games/fishing.ts`); the GIF is encoded with gifenc from one shared palette and loops seamlessly. A GIF takes about 1.5 seconds to draw, so the first four casts each draw one and later casts reuse them.
+- Timing lives in `timing` in `bot/src/commands/fish.ts`. Each pull's clock starts once it is on screen, and pull buttons carry the pull number so a doubled or late press can't count twice.
+
+More games, all with an optional `bet` (leave it out to play for fun) and a replay button that starts a new message:
+
+- `/higherlower`: guess whether the next card is higher or lower. Aces are high and ties redraw. Each correct guess multiplies the payout by 0.97 ÷ the chance it had (never below ×1), capped at ×100; cash out any time after a correct guess. Impossible guesses are disabled.
+- `/videopoker`: Jacks or Better on the 9/6 paytable (`bot/src/games/video-poker.ts`). Hold buttons only update the buttons, so toggling is instant; Draw settles the bet.
+- `/connect4` and `/tictactoe`: challenge a member (they Accept or Decline within 2 minutes; the challenger can withdraw), or leave `opponent` out to play Golem, which also works in DMs. With a bet, each player stakes it and the winner takes both; a draw refunds. A player who doesn't move for 5 minutes forfeits. `bot/src/lib/match.ts` runs challenges, turns, stakes and rematches for any two-player game; each game only supplies its rules, Golem's AI and its board.
+- `/trivia`: a question for the whole channel from a bundled bank of 60 (`bot/src/games/trivia-questions.ts`), with an optional category. Everyone answers once, privately; after 20 seconds Golem reveals the answer and pays 25 chips to the fastest correct answer and 10 to the others. A channel doesn't get the same question again within 20.
+
+- `bot/src/games/cards.ts` holds the deck and the playing card drawing for future card games. All images share `bot/src/lib/image.ts` with the level and rank cards; games use the Playfair Display serif and everything else Outfit.
+- Commands can handle their own buttons: a button whose custom id starts with `<command name>:` goes to that command's `button` function.
+
 ## Dashboard
 
-People sign in with Discord at `/dashboard/` and see the servers they own or have Manage Server in. Servers with Golem link to a page for that server's settings; the others get an invite link with that server preselected.
+People sign in with Discord at `/dashboard/` and see the servers they own or have Manage Server in; the others get an invite link with that server preselected. The dashboard is laid out like Discord's app: a rail of server icons on the left (`src/lib/components/dashboard/server-rail.svelte`), then a column listing that server's settings pages like channels, with the signed-in user at the bottom (`channel-sidebar.svelte`, built from shadcn-svelte's Sidebar). Each settings category is its own page, such as `/dashboard/<server>/logging/` and `/dashboard/<server>/games/`, and `/dashboard/<server>/` opens the first one. On phones both columns slide out from a menu button.
 
 Setup, in the developer portal under **OAuth2**:
 
@@ -69,6 +124,28 @@ node --env-file=.env build
 ```
 
 adapter-node builds the site's origin from the `Host` header and assumes `https`. That origin is used for the OAuth redirect, link previews and SvelteKit's CSRF check, so the reverse proxy in front of it must pass `Host` through. If it sends the original host in another header instead, set `HOST_HEADER=x-forwarded-host` (and `PROTOCOL_HEADER=x-forwarded-proto` if it isn't HTTPS-only). Running `node build` over plain HTTP makes sign-out fail with "Cross-site POST form submissions are forbidden", since the browser's `http://` origin won't match.
+
+## Deployment
+
+Golem runs on `hetzner-arch` in `~/golem` with Docker Compose, at https://golem.rudeus.net behind Cloudflare and the Caddy container in `~/master`.
+
+```sh
+scripts/deploy.sh
+```
+
+The script uploads every file git would track (so not `node_modules`, `data/` or `.env`), replaces the previous copy, and runs `docker compose up -d --build`. `compose.yaml` starts three containers from one image:
+
+- `migrate` applies pending migrations once, then exits. The other two wait for it.
+- `golem_bot` is the gateway client.
+- `golem_web` is the dashboard on port 3000. It joins Caddy's `master_default` network, and the Caddyfile has `reverse_proxy http://golem_web:3000` for the domain.
+
+On the server, `~/golem/.env` (created once by hand, mode 600) and `~/golem/data/` survive every deploy. After changing commands, register them from the server:
+
+```sh
+ssh hetzner-arch 'cd ~/golem && docker compose run --rm --no-deps bot node bot/src/deploy-commands.ts'
+```
+
+Don't run `pnpm bot` locally with the production token while the server is up: both processes would receive every interaction, and one of them fails to reply.
 
 ## Running as a public bot
 
@@ -101,4 +178,4 @@ pnpm dev
 
 Add a module in `bot/src/commands` that exports `command` with `data` (a `SlashCommandBuilder`) and `execute`. `bot/src/commands/ping.ts` is the pattern. Register it again with `pnpm bot:deploy`. `/help` and the dashboard list it automatically. Command modules must not import `bot/src/config.ts`, because the dashboard loads them too and has no token.
 
-Events live in `bot/src/events` and export `event` with `name` and `execute`.
+Events live in `bot/src/events` and export `event` with `name` and `execute`, or an `events` array to group related handlers like the `log-*.ts` files do. Helpers commands share go in `bot/src/lib`, since every file in `bot/src/commands` is loaded as a command.

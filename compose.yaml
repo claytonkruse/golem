@@ -1,0 +1,45 @@
+# Production on the VPS. scripts/deploy.sh copies the repo next to .env and data/,
+# then runs `docker compose up -d --build` here.
+
+x-golem: &golem
+  build: .
+  image: golem:latest
+  restart: unless-stopped
+  init: true
+  env_file: .env
+  volumes:
+    # Both processes open the same SQLite file.
+    - ./data:/app/data
+
+services:
+  # Runs once per deploy, before either process opens the database.
+  migrate:
+    <<: *golem
+    command: ['node', 'bot/src/migrate.ts']
+    restart: 'no'
+
+  bot:
+    <<: *golem
+    container_name: golem_bot
+    command: ['node', 'bot/src/index.ts']
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    <<: *golem
+    container_name: golem_web
+    command: ['node', 'build']
+    environment:
+      PORT: '3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - default
+      # Caddy in ~/master reaches the dashboard at golem_web:3000 over this network.
+      - master_default
+
+networks:
+  master_default:
+    external: true
