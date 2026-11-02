@@ -41,6 +41,16 @@ export const event = {
 			return;
 		}
 
+		if (interaction.isAutocomplete()) {
+			const command = commands.get(interaction.commandName);
+			try {
+				await command?.autocomplete?.(interaction);
+			} catch (error) {
+				console.error(`Suggestions for /${interaction.commandName} failed.`, error);
+			}
+			return;
+		}
+
 		if (!interaction.isChatInputCommand()) return;
 
 		const command = commands.get(interaction.commandName);

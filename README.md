@@ -97,6 +97,17 @@ More games, all with an optional `bet` (leave it out to play for fun) and a repl
 - `bot/src/games/cards.ts` holds the deck and the playing card drawing for future card games. All images share `bot/src/lib/image.ts` with the level and rank cards; games use the Playfair Display serif and everything else Outfit.
 - Commands can handle their own buttons: a button whose custom id starts with `<command name>:` goes to that command's `button` function.
 
+## Feeds
+
+Servers and DMs can follow RSS/Atom feeds, YouTube channels, and Twitch and Kick streamers. Servers manage them on the dashboard's Feeds page or with `/feed add`, `/feed list` and `/feed remove` (Manage Server by default); in a DM with Golem, `/feed` follows feeds for that person's DMs, and the dashboard's Your feeds page (under Your servers, after Golem's logo in the rail) manages the same list. Golem can only DM someone who shares a server with it and allows DMs from its members.
+
+- Each source (`feed_sources`) is checked once however many servers and DMs follow it (`feed_subscriptions`), and deleted once nothing does. Feeds and YouTube are checked every 10 minutes, streamers every 2 (`feedKinds` in `bot/src/feeds/sources.ts`). The poller in `bot/src/feeds/poller.ts` starts when the bot is ready.
+- New subscriptions post only what appears after they're added. At most 5 posts per check, oldest first. A source that keeps failing is checked less often, up to every 6 hours, and its error shows on the dashboard and in `/feed list` until it works again; so does a channel Golem can't post in.
+- RSS/Atom accepts a feed link or a website that links to its feed. YouTube accepts a handle, a channel link or a channel id and uses YouTube's public feed (no key). YouTube's feeds return 404 now and then, so a 404 counts as nothing new rather than an error.
+- Twitch and Kick need free applications from their developer consoles: `TWITCH_CLIENT_ID`/`TWITCH_CLIENT_SECRET` and `KICK_CLIENT_ID`/`KICK_CLIENT_SECRET` in `.env`. Without them those types show as not set up. Both the bot and the dashboard read them.
+- Feed links come from users, so `bot/src/feeds/fetch.ts` refuses private, loopback, link-local and other internal addresses on every redirect and at connect time, caps responses at 5 MB and 15 seconds, and only follows http and https.
+- Limits: 25 feeds per server, 10 per person in DMs. X isn't supported: reading posts needs X's paid API.
+
 ## Dashboard
 
 People sign in with Discord at `/dashboard/` and see the servers they own or have Manage Server in; the others get an invite link with that server preselected. The dashboard is laid out like Discord's app: a rail of server icons on the left (`src/lib/components/dashboard/server-rail.svelte`), then a column listing that server's settings pages like channels, with the signed-in user at the bottom (`channel-sidebar.svelte`, built from shadcn-svelte's Sidebar). Each settings category is its own page, such as `/dashboard/<server>/logging/` and `/dashboard/<server>/games/`, and `/dashboard/<server>/` opens the first one. On phones both columns slide out from a menu button.

@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import ChannelSidebar from '#lib/components/dashboard/channel-sidebar.svelte';
+	import { homeSections } from '#lib/components/dashboard/home-sections.js';
 	import GuildIcon from '#lib/components/guild-icon.svelte';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import ChevronRight from '@tabler/icons-svelte/icons/chevron-right';
 	import Plus from '@tabler/icons-svelte/icons/plus';
-	import Server from '@tabler/icons-svelte/icons/server';
 
 	let { data } = $props();
 </script>
@@ -16,12 +16,7 @@
 	<title>Dashboard · Golem</title>
 </svelte:head>
 
-<ChannelSidebar
-	title="Golem"
-	subtitle="Dashboard"
-	groupLabel="Dashboard"
-	sections={[{ href: resolve('dashboard/'), label: 'Your servers', icon: Server }]}
->
+<ChannelSidebar title="Golem" subtitle="Dashboard" groupLabel="Dashboard" sections={homeSections()}>
 	<div class="flex flex-col gap-2">
 		<h1 class="font-heading text-2xl font-semibold tracking-tight">Your servers</h1>
 		<p class="text-sm/relaxed text-muted-foreground">

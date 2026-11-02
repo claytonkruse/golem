@@ -1,4 +1,11 @@
-import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+	index,
+	integer,
+	primaryKey,
+	sqliteTable,
+	text,
+	uniqueIndex
+} from 'drizzle-orm/sqlite-core';
 
 // Discord ids are text: snowflakes exceed Number.MAX_SAFE_INTEGER, and text maps
 // the same way if this ever moves to Postgres.
@@ -161,4 +168,52 @@ export const guildLevelCommands = sqliteTable(
 		enabled: integer('enabled', { mode: 'boolean' }).notNull()
 	},
 	(table) => [primaryKey({ columns: [table.guildId, table.command] })]
+);
+
+// Something Golem follows: a feed URL, a YouTube channel id, or a Twitch or Kick broadcaster
+// id. Each is checked once however many servers and DMs follow it, and deleted once nothing
+// does.
+export const feedSources = sqliteTable(
+	'feed_sources',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		kind: text('kind').notNull(),
+		key: text('key').notNull(),
+		title: text('title').notNull(),
+		// The page people know it by, for links in the dashboard and /feed list.
+		url: text('url').notNull(),
+		// What the last check saw: recent item ids for feeds, the live stream for streamers.
+		state: text('state', { mode: 'json' }).$type<FeedState>().notNull(),
+		nextCheckAt: integer('next_check_at', { mode: 'timestamp_ms' }).notNull(),
+		failures: integer('failures').notNull().default(0),
+		lastError: text('last_error')
+	},
+	(table) => [
+		uniqueIndex('feed_sources_kind_key_idx').on(table.kind, table.key),
+		index('feed_sources_next_check_at_idx').on(table.nextCheckAt)
+	]
+);
+
+export type FeedState = { seen?: string[]; live?: string | null };
+
+// Where a source's posts go. In a server, channelId is the channel. In a DM, guildId is
+// null and channelId is the person's user id, since Golem DMs them directly.
+export const feedSubscriptions = sqliteTable(
+	'feed_subscriptions',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		sourceId: integer('source_id')
+			.notNull()
+			.references(() => feedSources.id, { onDelete: 'cascade' }),
+		guildId: text('guild_id').references(() => guilds.id, { onDelete: 'cascade' }),
+		channelId: text('channel_id').notNull(),
+		createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+		// Why the last post here failed, like missing permissions. Cleared by the next success.
+		lastError: text('last_error')
+	},
+	(table) => [
+		uniqueIndex('feed_subscriptions_source_channel_idx').on(table.sourceId, table.channelId),
+		index('feed_subscriptions_guild_id_idx').on(table.guildId),
+		index('feed_subscriptions_channel_id_idx').on(table.channelId)
+	]
 );

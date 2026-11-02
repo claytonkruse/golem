@@ -9,6 +9,7 @@
 	import InfoCircle from '@tabler/icons-svelte/icons/info-circle';
 	import X from '@tabler/icons-svelte/icons/x';
 	import type { LogOption } from '#bot/lib/log-events.ts';
+	import { channelGroups } from '#lib/channel-groups.js';
 	import type { ChannelOption } from '#lib/server/logging.js';
 
 	type Logging = {
@@ -33,16 +34,7 @@
 		COLUMNS.map((ids) => ids.flatMap((id) => logging.groups.filter((group) => group.id === id)))
 	);
 
-	// Consecutive channels in the same category, for <optgroup>s that match Discord's sidebar.
-	const categories = $derived(
-		logging.channels.reduce<{ name: string; channels: ChannelOption[] }[]>((groups, channel) => {
-			const name = channel.category ?? 'No category';
-			const last = groups.at(-1);
-			if (last?.name === name) last.channels.push(channel);
-			else groups.push({ name, channels: [channel] });
-			return groups;
-		}, [])
-	);
+	const categories = $derived(channelGroups(logging.channels));
 </script>
 
 {#snippet groupCard(group: Logging['groups'][number])}

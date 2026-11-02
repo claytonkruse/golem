@@ -3,6 +3,7 @@
 	import ChannelSidebar from '#lib/components/dashboard/channel-sidebar.svelte';
 	import DeviceGamepad2 from '@tabler/icons-svelte/icons/device-gamepad-2';
 	import ListDetails from '@tabler/icons-svelte/icons/list-details';
+	import Rss from '@tabler/icons-svelte/icons/rss';
 	import TrendingUp from '@tabler/icons-svelte/icons/trending-up';
 
 	let { data, children } = $props();
@@ -26,6 +27,11 @@
 						href: resolve(`dashboard/${data.guild.id}/games/`),
 						label: 'Games',
 						icon: DeviceGamepad2
+					},
+					{
+						href: resolve(`dashboard/${data.guild.id}/feeds/`),
+						label: 'Feeds',
+						icon: Rss
 					}
 				]
 			: []

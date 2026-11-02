@@ -1,5 +1,6 @@
 import {
 	ApplicationCommandOptionType,
+	type AutocompleteInteraction,
 	type ButtonInteraction,
 	type ChatInputCommandInteraction,
 	type RESTPostAPIChatInputApplicationCommandsJSONBody,
@@ -16,6 +17,8 @@ export type Command = {
 	execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
 	// Buttons whose custom id starts with "<command name>:" are sent here.
 	button?: (interaction: ButtonInteraction) => Promise<void>;
+	// Suggestions for options declared with setAutocomplete(true).
+	autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
 };
 
 export type CommandSummary = {
