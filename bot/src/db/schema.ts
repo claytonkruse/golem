@@ -23,7 +23,7 @@ export const sessions = sqliteTable('sessions', {
 	username: text('username').notNull(),
 	globalName: text('global_name'),
 	avatar: text('avatar'),
-	// The user's Discord OAuth token, used to list their servers. The session ends when
+	// The user's Discord OAuth token, used to list the user's servers. The session ends when
 	// it expires, so there is no refresh token to keep.
 	accessToken: text('access_token').notNull(),
 	expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull()
@@ -62,7 +62,7 @@ export const logOptions = sqliteTable(
 );
 
 // Who invited each member Golem traced, so "x has now invited N of our members" can
-// count only people who are still here. A member's row is removed when they leave.
+// count only people who are still here. A member's row is removed when the member leaves.
 export const inviteJoins = sqliteTable(
 	'invite_joins',
 	{
@@ -95,8 +95,37 @@ export const memberLeaves = sqliteTable(
 	(table) => [primaryKey({ columns: [table.guildId, table.userId] })]
 );
 
-// The roles someone had when they left, kept while the server restores roles on rejoin.
-// Removed once they rejoin, or for the whole server when the setting is turned off.
+// Invites from before Golem tracked them, added to an inviter's tracked count by hand. There
+// is no command or page for this; set it in the database.
+export const inviteCountAdjustments = sqliteTable(
+	'invite_count_adjustments',
+	{
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		inviterId: text('inviter_id').notNull(),
+		extra: integer('extra').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.guildId, table.inviterId] })]
+);
+
+// When each current member joined, recorded on every join whether or not anything shows it,
+// so "time in server" works once it is turned on. Discord also knows this for members Golem
+// has cached; this covers the ones it hasn't. Removed when the member leaves.
+export const memberJoins = sqliteTable(
+	'member_joins',
+	{
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => guilds.id, { onDelete: 'cascade' }),
+		userId: text('user_id').notNull(),
+		joinedAt: integer('joined_at', { mode: 'timestamp_ms' }).notNull()
+	},
+	(table) => [primaryKey({ columns: [table.guildId, table.userId] })]
+);
+
+// The roles a member had when the member left, kept while the server restores roles on rejoin.
+// Removed once the member rejoins, or for the whole server when the setting is turned off.
 export const memberRoles = sqliteTable(
 	'member_roles',
 	{
@@ -106,8 +135,8 @@ export const memberRoles = sqliteTable(
 		userId: text('user_id').notNull(),
 		// A JSON array of role ids.
 		roleIds: text('role_ids', { mode: 'json' }).$type<string[]>().notNull(),
-		// How they left: 'left', 'kicked', 'banned', or 'unknown' when Golem can't read the audit
-		// log to rule out a kick. Checked against the settings when they rejoin.
+		// How the member left: 'left', 'kicked', 'banned', or 'unknown' when Golem can't read the audit
+		// log to rule out a kick. Checked against the settings when the member rejoins.
 		removal: text('removal', { enum: ['left', 'kicked', 'banned', 'unknown'] })
 			.notNull()
 			.default('left'),
@@ -253,7 +282,7 @@ export const feedSources = sqliteTable(
 export type FeedState = { seen?: string[]; live?: string | null };
 
 // Where a source's posts go. In a server, channelId is the channel. In a DM, guildId is
-// null and channelId is the person's user id, since Golem DMs them directly.
+// null and channelId is the person's user id, since Golem DMs that person directly.
 export const feedSubscriptions = sqliteTable(
 	'feed_subscriptions',
 	{

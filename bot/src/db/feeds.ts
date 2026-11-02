@@ -4,7 +4,7 @@ import { db } from './index.ts';
 import { feedSources, feedSubscriptions, type FeedState } from './schema.ts';
 
 // Who follows what. A subscription in a server posts to a channel; one made in a DM posts
-// to the person who made it (guildId null, channelId their user id).
+// to the person who made it (guildId null, channelId that person's user id).
 
 export const MAX_SERVER_FEEDS = 25;
 export const MAX_DM_FEEDS = 10;

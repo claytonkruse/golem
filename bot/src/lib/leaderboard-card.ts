@@ -8,7 +8,7 @@ export type LeaderRow = {
 	name: string;
 	avatarUrl: string;
 	xp: number;
-	// The person who ran the command, marked so they can find themselves.
+	// The person who ran the command, marked so that row stands out.
 	you: boolean;
 };
 

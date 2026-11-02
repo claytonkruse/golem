@@ -7,13 +7,13 @@ export const MAX_WELCOME_LENGTH = 2000;
 
 export const welcomeVariables = [
 	{ key: 'user', description: 'Mentions the new member.' },
-	{ key: 'username', description: 'Their Discord username, without a mention.' },
+	{ key: 'username', description: "The member's Discord username, without a mention." },
 	{ key: 'server', description: "The server's name." },
 	{ key: 'membercount', description: 'How many members the server has now.' },
 	{
 		key: 'inviter',
 		description:
-			'Mentions who invited them, without pinging. "someone" when Golem can\'t tell, and "the vanity link" for the server\'s vanity URL.'
+			'Mentions who invited the member, without pinging. "someone" when Golem can\'t tell, and "the vanity link" for the server\'s vanity URL.'
 	},
 	{
 		key: 'invitername',
@@ -27,7 +27,7 @@ export const welcomeVariables = [
 	},
 	{
 		key: 'leavecount',
-		description: 'How many times they have left this server before, as far as Golem has seen.'
+		description: 'How many times the member has left this server before, as far as Golem has seen.'
 	}
 ] as const;
 

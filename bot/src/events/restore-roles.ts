@@ -7,7 +7,7 @@ import {
 import { saveRoles, takeRoles, type Removal } from '../db/member-roles.ts';
 import type { Event } from '../lib/event.ts';
 
-// Discord does not say which roles someone had when they leave, so Golem needs them cached
+// Discord does not say which roles a member had when the member leaves, so Golem needs them cached
 // beforehand. Servers that turn this on have their members loaded within a few minutes.
 const LOAD_INTERVAL = 5 * 60 * 1000;
 const loaded = new Set<string>();
@@ -92,7 +92,7 @@ export const events = [
 				.filter((role) => role.id !== member.guild.id && !role.managed)
 				.map((role) => role.id);
 			if (roleIds.length === 0) return;
-			// Saved however they left, so changing the switches later applies to it.
+			// Saved however the member left, so changing the switches later applies to it.
 			const removal = await removalOf(member.guild, member.id, Date.now());
 			saveRoles(member.guild.id, member.id, { roleIds, removal });
 		}
@@ -112,7 +112,7 @@ export const events = [
 			});
 			if (roles.length === 0) return;
 			try {
-				await member.roles.add(roles, 'Restoring the roles they had when they left');
+				await member.roles.add(roles, 'Restoring the roles the member had before leaving');
 			} catch (error) {
 				console.error(`Could not restore roles in ${member.guild.id}.`, error);
 			}

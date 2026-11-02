@@ -51,7 +51,9 @@ Servers pick channels for each of 22 events, grouped as server changes, moderati
 - Handlers live in `bot/src/events/log-*.ts` and post through `sendLog` in `bot/src/lib/logging.ts`, which skips channels where Golem lacks View Channel, Send Messages or Embed Links and forgets channels that no longer exist.
 - Deleted and edited messages include their text only if Golem saw the message arrive. Cached messages are swept after six hours.
 - Logs don't say who made a change; that would need View Audit Log and an audit log lookup per event.
-- **Member joined** has switches (`log_options`) for who invited someone, how many members their inviter has brought in, and how many times they left before. Its row on the dashboard points to the Welcome page, which can show the same things publicly.
+- **Member joined** has switches (`log_options`) for who invited someone, how many members the inviter has brought in, and how many times the member left before. Its row on the dashboard points to the Welcome page, which can show the same things publicly.
+- **Member left** has the same three switches (who invited the member, how many invited members the inviter still has, and how many times the member has left, counting this one) plus **Show how long the member was in the server**. Its "Show who invited the member" also turns on invite tracking, and only knows inviters for joins tracked while some invite setting was on.
+- Every join is recorded in `member_joins` whether or not anything shows it, so time in server works as soon as it's turned on. The row is removed when the member leaves. Members who joined before this shipped fall back to Discord's join date, which Golem only has for members it has loaded.
 
 Logging uses two privileged intents. Turn on **Server Members Intent** and **Message Content Intent** under **Bot** in the developer portal, or the bot fails to log in with "Used disallowed intents". Past 100 servers, Discord has to verify Golem and approve both.
 
@@ -61,17 +63,18 @@ Servers can have Golem post a message when someone joins, set on the dashboard's
 
 - The message is a template. `{user}`, `{username}`, `{server}`, `{membercount}`, `{inviter}`, `{invitername}`, `{invitecount}` and `{leavecount}` are listed with descriptions in `bot/src/lib/welcome.ts`; unknown `{words}` are left as typed. In `/welcome set`, `\n` is a line break.
 - **Ping mentioned members** (`welcome_settings.ping_mentions`, off by default, or `/welcome set ping:`) decides whether user mentions in the message ping, including `{user}` and `{inviter}`. Roles, `@everyone` and `@here` never ping. Apps added to the server aren't welcomed.
-- `{inviter}`, `{invitername}` and `{invitecount}` turn on invite tracking for the server just like the log's "Show who invited them" switch, and need Manage Server too. The log and the welcome message share one invite lookup per join (`joinDetails` in `bot/src/lib/member-join.ts`), since the invite counts can only be compared once.
+- `{inviter}`, `{invitername}` and `{invitecount}` turn on invite tracking for the server just like the log's "Show who invited the member" switch, and need Manage Server too. The log and the welcome message share one invite lookup per join (`joinDetails` in `bot/src/lib/member-join.ts`), since the invite counts can only be compared once.
+- Invite counts are the inviter's tracked members still in the server plus `invite_count_adjustments.extra`, which is set by hand in the database for invites from before Golem tracked them.
 - Leaves are counted in `member_leaves` for every server, whether or not anything shows them, starting from when this shipped. Kicks and bans count as leaving, since Discord reports them the same way, and leaves while Golem is offline are missed.
 
 ## Restoring roles
 
 The dashboard's General page (the first settings page) has **Restore roles on rejoin** (`guild_settings.restore_roles`, off by default). Handlers are in `bot/src/events/restore-roles.ts`.
 
-- When a member leaves, their roles go into `member_roles`; when they rejoin, Golem gives back the ones that still exist and deletes the row. Turning the setting off deletes the server's saved roles.
-- Discord doesn't send someone's roles when they leave, so the bot loads the members of servers with the setting on at startup and checks for newly enabled servers every five minutes. Leaves before that, or while Golem is offline, aren't saved.
+- When a member leaves, the member's roles go into `member_roles`; on rejoining, Golem gives back the ones that still exist and deletes the row. Turning the setting off deletes the server's saved roles.
+- Discord doesn't send a member's roles when the member leaves, so the bot loads the members of servers with the setting on at startup and checks for newly enabled servers every five minutes. Leaves before that, or while Golem is offline, aren't saved.
 - Golem needs Manage Roles and can only give roles below its own highest role. `@everyone`, app roles and the booster role are skipped.
-- **Include kicked members** (`restore_kicked`) and **Include banned members** (`restore_banned`) are off by default, so kicked and banned members rejoin without roles as Discord does it. Each saved row records how the member left (`member_roles.removal`), and the switches are checked when they rejoin.
+- **Include kicked members** (`restore_kicked`) and **Include banned members** (`restore_banned`) are off by default, so kicked and banned members rejoin without roles as Discord does it. Each saved row records how the member left (`member_roles.removal`), and the switches are checked when the member rejoins.
 - Discord reports leaving, kicks and bans the same way. Bans are recognized by their own event, kicks by the audit log, which needs View Audit Log. Without it a removal is saved as `unknown` and treated as a possible kick.
 
 ## Moderation
@@ -111,7 +114,7 @@ More games, all with an optional `bet` (leave it out to play for fun) and a repl
 
 - `/higherlower`: guess whether the next card is higher or lower. Aces are high and ties redraw. Each correct guess multiplies the payout by 0.97 ÷ the chance it had (never below ×1), capped at ×100; cash out any time after a correct guess. Impossible guesses are disabled.
 - `/videopoker`: Jacks or Better on the 9/6 paytable (`bot/src/games/video-poker.ts`). Hold buttons only update the buttons, so toggling is instant; Draw settles the bet.
-- `/connect4` and `/tictactoe`: challenge a member (they Accept or Decline within 2 minutes; the challenger can withdraw), or leave `opponent` out to play Golem, which also works in DMs. With a bet, each player stakes it and the winner takes both; a draw refunds. A player who doesn't move for 5 minutes forfeits. `bot/src/lib/match.ts` runs challenges, turns, stakes and rematches for any two-player game; each game only supplies its rules, Golem's AI and its board.
+- `/connect4` and `/tictactoe`: challenge a member (the member accepts or declines within 2 minutes; the challenger can withdraw), or leave `opponent` out to play Golem, which also works in DMs. With a bet, each player stakes it and the winner takes both; a draw refunds. A player who doesn't move for 5 minutes forfeits. `bot/src/lib/match.ts` runs challenges, turns, stakes and rematches for any two-player game; each game only supplies its rules, Golem's AI and its board.
 - `/trivia`: a question for the whole channel from a bundled bank of 60 (`bot/src/games/trivia-questions.ts`), with an optional category. Everyone answers once, privately; after 20 seconds Golem reveals the answer and pays 25 chips to the fastest correct answer and 10 to the others. A channel doesn't get the same question again within 20.
 
 - `bot/src/games/cards.ts` holds the deck and the playing card drawing for future card games. All images share `bot/src/lib/image.ts` with the level and rank cards; games use the Playfair Display serif and everything else Outfit.
@@ -142,7 +145,7 @@ Setup, in the developer portal under **OAuth2**:
 How it works:
 
 - Sign-in asks only for `identify` and `guilds`. The session cookie is `httpOnly`, and the database stores a SHA-256 hash of it, never the cookie itself.
-- Sessions last as long as Discord's token (7 days). If someone revokes Golem in Discord's settings, their next dashboard visit ends the session and starts a fresh sign-in.
+- Sessions last as long as Discord's token (7 days). If someone revokes Golem in Discord's settings, that person's next dashboard visit ends the session and starts a fresh sign-in.
 - Each dashboard load checks access itself with `managedGuilds`/`managedGuild` in `src/lib/server/guilds.ts`. A server the person cannot manage is a 404.
 - Each person's server list is cached for a minute, because Discord rate limits that endpoint.
 - `+server.ts` endpoints do not inherit `trailingSlash` from the layout, so each one exports it.

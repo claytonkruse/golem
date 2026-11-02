@@ -2,7 +2,7 @@ import { PermissionFlagsBits, type Guild } from 'discord.js';
 
 // Discord does not say which invite someone used. Golem keeps each server's invite use
 // counts and, when someone joins, reads them again: the invite whose count went up is
-// the one they used. Only servers with "Show who invited them" on are tracked.
+// the one the member used. Only servers with "Show who invited the member" on are tracked.
 
 type InviteSnapshot = {
 	uses: number;
@@ -96,7 +96,7 @@ async function resolve(guild: Guild): Promise<InviteResult> {
 	if (code === undefined) {
 		return {
 			kind: 'unknown',
-			reason: 'No invite use was recorded, so they may have joined through Server Discovery.'
+			reason: 'No invite use was recorded, so the member may have joined through Server Discovery.'
 		};
 	}
 	if (code === VANITY) return { kind: 'vanity', code: guild.vanityURLCode ?? 'vanity' };

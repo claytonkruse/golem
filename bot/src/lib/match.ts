@@ -239,7 +239,7 @@ async function open<State, Move extends string>(
 	});
 }
 
-// /connect4 and /tictactoe. With an opponent it challenges them; without one, Golem plays.
+// /connect4 and /tictactoe. With an opponent it challenges the opponent; without one, Golem plays.
 export async function startFromCommand<State, Move extends string>(
 	game: MatchGame<State, Move>,
 	interaction: ChatInputCommandInteraction

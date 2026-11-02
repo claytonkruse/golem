@@ -22,7 +22,7 @@
 	};
 
 	// welcomeHref: the Welcome page, pointed to from Member joined since both show who invited
-	// someone and how often they left before.
+	// someone and how often the member left before.
 	let { logging, welcomeHref }: { logging: Logging; welcomeHref: string } = $props();
 
 	const enabled = $derived(new Set(logging.enabledOptions));

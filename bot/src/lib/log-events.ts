@@ -176,7 +176,7 @@ export const logEventOptions: Partial<Record<LogEventKey, LogOption[]>> = {
 	member_join: [
 		{
 			key: 'show_inviter',
-			label: 'Show who invited them',
+			label: 'Show who invited the member',
 			note: 'requirement',
 			description:
 				'Golem needs the Manage Server permission for this, since Discord only shows invites to members who have it.'
@@ -185,14 +185,42 @@ export const logEventOptions: Partial<Record<LogEventKey, LogOption[]>> = {
 			key: 'show_invite_count',
 			label: 'Show how many members the inviter has brought in',
 			description:
-				'Counts people they invited who are still in the server, from when Golem started tracking invites here.',
+				'Counts people the inviter brought in who are still in the server, from when Golem started tracking invites here.',
 			requires: 'show_inviter'
 		},
 		{
 			key: 'show_leave_count',
-			label: 'Show how many times they left before',
+			label: 'Show how many times the member left before',
 			description:
 				"Counts leaves Golem has seen, so leaves before Golem tracked them or while it was offline aren't included."
+		}
+	],
+	member_leave: [
+		{
+			key: 'show_inviter',
+			label: 'Show who invited the member',
+			note: 'requirement',
+			description:
+				'Golem needs the Manage Server permission for this, and only knows inviters for joins while this or another invite setting was on.'
+		},
+		{
+			key: 'show_invite_count',
+			label: 'Show how many members the inviter has brought in',
+			description:
+				'Counts people the inviter brought in who are still in the server, after this one left, from when Golem started tracking invites here.',
+			requires: 'show_inviter'
+		},
+		{
+			key: 'show_leave_count',
+			label: 'Show how many times the member has left',
+			description:
+				"Counts this leave and earlier ones Golem has seen, so leaves before Golem tracked them or while it was offline aren't included."
+		},
+		{
+			key: 'show_time_in_server',
+			label: 'Show how long the member was in the server',
+			description:
+				"From when the member last joined. Golem records every join, even with this off, so it works for anyone who joined since this feature shipped. For earlier members it uses Discord's join date when Golem has them loaded."
 		}
 	]
 };

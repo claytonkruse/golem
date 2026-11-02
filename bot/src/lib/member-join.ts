@@ -1,5 +1,6 @@
 import { escapeMarkdown, userMention, type GuildMember, type PartialGuildMember } from 'discord.js';
 import { countInvitedMembers, recordInviteJoin } from '../db/invite-joins.ts';
+import { recordJoin } from '../db/member-joins.ts';
 import { countLeaves } from '../db/member-leaves.ts';
 import { hasLogOption } from '../db/log-options.ts';
 import { welcomeUsesInvites } from '../db/welcome.ts';
@@ -15,7 +16,7 @@ export type JoinDetails = {
 	invite: InviteResult | null;
 	// Members the inviter has brought in who are still here, counting this one.
 	inviterCount: number | null;
-	// Times they left this server before, as far as Golem has seen.
+	// Times the member left this server before, as far as Golem has seen.
 	leaves: number;
 };
 
@@ -26,10 +27,15 @@ const keyOf = (member: GuildMember | PartialGuildMember) => `${member.guild.id}:
 
 // Servers where some setting needs to know which invite someone used.
 export function tracksInvites(guildId: string): boolean {
-	return hasLogOption(guildId, 'member_join', 'show_inviter') || welcomeUsesInvites(guildId);
+	return (
+		hasLogOption(guildId, 'member_join', 'show_inviter') ||
+		hasLogOption(guildId, 'member_leave', 'show_inviter') ||
+		welcomeUsesInvites(guildId)
+	);
 }
 
 async function lookUp(member: GuildMember): Promise<JoinDetails> {
+	recordJoin(member.guild.id, member.id, member.joinedAt ?? new Date());
 	const leaves = countLeaves(member.guild.id, member.id);
 	if (member.user.bot || !tracksInvites(member.guild.id)) {
 		return { invite: null, inviterCount: null, leaves };

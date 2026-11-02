@@ -4,7 +4,7 @@ import { botToken, clientId, clientSecret } from './config.ts';
 const API = 'https://discord.com/api/v10';
 const CDN = 'https://cdn.discordapp.com';
 
-// identify for the user's name and avatar, guilds for the servers they are in.
+// identify for the user's name and avatar, guilds for the servers the user is in.
 const SCOPES = 'identify guilds';
 
 // Permission bits from https://discord.com/developers/docs/topics/permissions
@@ -26,7 +26,7 @@ export type DiscordGuild = {
 	permissions: string;
 };
 
-// Discord answered 401: the person revoked Golem in their settings or the token expired.
+// Discord answered 401: the person revoked Golem in Discord's settings or the token expired.
 export class DiscordUnauthorized extends Error {}
 
 type TokenResponse = {

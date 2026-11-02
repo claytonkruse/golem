@@ -6,12 +6,34 @@ import {
 	TimestampStyles,
 	userMention
 } from 'discord.js';
-import { removeInviteJoin } from '../db/invite-joins.ts';
+import { countInvitedMembers, getInviteJoin, removeInviteJoin } from '../db/invite-joins.ts';
 import { hasLogOption } from '../db/log-options.ts';
-import { recordLeave } from '../db/member-leaves.ts';
+import { takeJoin } from '../db/member-joins.ts';
+import { countLeaves, recordLeave } from '../db/member-leaves.ts';
 import type { Event } from '../lib/event.ts';
 import { addChange, logColor, logEmbed, sendLog, truncate, withUser } from '../lib/logging.ts';
 import { forgetJoin, joinDetails } from '../lib/member-join.ts';
+
+const UNITS = [
+	['year', 365 * 24 * 60 * 60 * 1000],
+	['day', 24 * 60 * 60 * 1000],
+	['hour', 60 * 60 * 1000],
+	['minute', 60 * 1000]
+] as const;
+
+// The two largest units, like "1 year, 12 days" or "3 hours, 5 minutes".
+function duration(ms: number): string {
+	const parts: string[] = [];
+	let rest = ms;
+	for (const [unit, size] of UNITS) {
+		const amount = Math.floor(rest / size);
+		rest -= amount * size;
+		if (amount > 0 || parts.length > 0) parts.push(`${amount} ${unit}${amount === 1 ? '' : 's'}`);
+		if (parts.length === 2) break;
+	}
+	const shown = parts.filter((part) => !part.startsWith('0 '));
+	return shown.length > 0 ? shown.join(', ') : 'Less than a minute';
+}
 
 function timesLeft(leaves: number): string {
 	if (leaves === 0) return 'Never';
@@ -69,7 +91,7 @@ export const events = [
 							hasLogOption(member.guild.id, 'member_join', 'show_invite_count')
 						) {
 							embed.addFields({
-								name: 'Their invites',
+								name: "Inviter's invites",
 								value: `${inviter} has now invited ${details.inviterCount} of our members.`
 							});
 						}
@@ -94,20 +116,56 @@ export const events = [
 	{
 		name: Events.GuildMemberRemove,
 		async execute(member) {
-			// Someone who left no longer counts toward their inviter's members.
-			removeInviteJoin(member.guild.id, member.id);
+			const guildId = member.guild.id;
+			// Read before the rows below are cleared. Discord's join date needs the member cached.
+			const joinedAt = takeJoin(guildId, member.id) ?? member.joinedAt;
+			const inviteJoin = getInviteJoin(guildId, member.id);
+			// A member who left no longer counts toward the inviter's members.
+			removeInviteJoin(guildId, member.id);
 			forgetJoin(member);
 			// Golem itself leaving is handled by GuildDelete, which deletes the server's rows.
-			if (member.id !== member.client.user.id) recordLeave(member.guild.id, member.id);
+			if (member.id !== member.client.user.id) recordLeave(guildId, member.id);
 			const embed = withUser(logEmbed(logColor.delete, 'Member left'), member.user).setDescription(
 				`${userMention(member.id)} (${member.user.username})`
 			);
 			// Discord does not say whether someone left or was kicked; bans are logged separately.
-			if (member.joinedAt) {
+			if (joinedAt) {
 				embed.addFields({
 					name: 'Joined',
-					value: time(member.joinedAt, TimestampStyles.RelativeTime)
+					value: time(joinedAt, TimestampStyles.RelativeTime),
+					inline: true
 				});
+				if (hasLogOption(guildId, 'member_leave', 'show_time_in_server')) {
+					embed.addFields({
+						name: 'Time in server',
+						value: duration(Date.now() - joinedAt.getTime()),
+						inline: true
+					});
+				}
+			}
+			if (hasLogOption(guildId, 'member_leave', 'show_inviter') && !member.user.bot) {
+				if (inviteJoin) {
+					const inviter = userMention(inviteJoin.inviterId);
+					embed.addFields({
+						name: 'Invited by',
+						value: `${inviter} with \`${inviteJoin.inviteCode}\``
+					});
+					if (hasLogOption(guildId, 'member_leave', 'show_invite_count')) {
+						const count = countInvitedMembers(guildId, inviteJoin.inviterId);
+						embed.addFields({
+							name: "Inviter's invites",
+							value: `${inviter} now has ${count} invited ${count === 1 ? 'member' : 'members'} still here.`
+						});
+					}
+				} else {
+					embed.addFields({
+						name: 'Invited by',
+						value: 'Unknown, or through the vanity link. Golem only knows invites it tracked.'
+					});
+				}
+			}
+			if (hasLogOption(guildId, 'member_leave', 'show_leave_count')) {
+				embed.addFields({ name: 'Times left', value: timesLeft(countLeaves(guildId, member.id)) });
 			}
 			const roles = member.roles.cache.filter((role) => role.id !== member.guild.id);
 			if (roles.size > 0) {

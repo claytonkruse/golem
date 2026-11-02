@@ -3,7 +3,7 @@ import { DAILY_CHIPS, DAILY_COOLDOWN_MS, STARTING_CHIPS } from '../lib/chips.ts'
 import { db } from './index.ts';
 import { chipBalances, chipHolds } from './schema.ts';
 
-// Gives a first-time player their starting chips. Safe to call every time.
+// Gives a first-time player the starting chips. Safe to call every time.
 function ensureBalance(userId: string): void {
 	db.insert(chipBalances).values({ userId, chips: STARTING_CHIPS }).onConflictDoNothing().run();
 }

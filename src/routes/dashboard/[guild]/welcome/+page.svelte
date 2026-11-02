@@ -65,8 +65,8 @@
 >
 	<InfoCircle class="mt-0.5 size-3.5 shrink-0" />
 	<span>
-		This greets new members publicly. To record who invited someone and how many times they left
-		before for your moderators, also see <strong>Member joined</strong> on the
+		This greets new members publicly. To record who invited someone and how many times the member
+		left before for your moderators, also see <strong>Member joined</strong> on the
 		<a href={resolve(`dashboard/${page.params.guild}/logging/`)} class="underline">Logging</a> page.
 	</span>
 </p>

@@ -166,7 +166,7 @@ export const command = {
 		.setDescription('Follow RSS, YouTube, Twitch and Kick feeds here, or in your DMs.')
 		.setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
 		.setContexts(InteractionContextType.Guild, InteractionContextType.BotDM)
-		// Servers only; in a DM with Golem anyone manages their own feeds. Admins can hand
+		// Servers only; in a DM with Golem anyone manages the feeds for that DM. Admins can hand
 		// this to other roles under Server Settings → Integrations.
 		.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
 		.addSubcommand((sub) =>

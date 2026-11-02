@@ -127,6 +127,20 @@
       "when": 1793649419012,
       "tag": "0017_welcome_pings_off",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1793650008683,
+      "tag": "0018_member_joins",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1793650813447,
+      "tag": "0019_invite_count_adjustments",
+      "breakpoints": true
     }
   ]
 }
