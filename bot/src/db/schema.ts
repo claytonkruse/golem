@@ -235,6 +235,8 @@ export const guildSettings = sqliteTable('guild_settings', {
 	gamesEnabled: integer('games_enabled', { mode: 'boolean' }).notNull().default(false),
 	// Whether members who leave get their roles back when they rejoin. Off until turned on.
 	restoreRoles: integer('restore_roles', { mode: 'boolean' }).notNull().default(false),
+	// A role given to everyone who joins, or null for none. Cleared if the role is deleted.
+	joinRoleId: text('join_role_id'),
 	// Whether restoring roles also covers members who were kicked or banned. Off by default,
 	// so they rejoin without roles the way Discord does it.
 	restoreKicked: integer('restore_kicked', { mode: 'boolean' }).notNull().default(false),

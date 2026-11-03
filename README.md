@@ -77,6 +77,13 @@ The dashboard's General page (the first settings page) has **Restore roles on re
 - **Include kicked members** (`restore_kicked`) and **Include banned members** (`restore_banned`) are off by default, so kicked and banned members rejoin without roles as Discord does it. Each saved row records how the member left (`member_roles.removal`), and the switches are checked when the member rejoins.
 - Discord reports leaving, kicks and bans the same way. Bans are recognized by their own event, kicks by the audit log, which needs View Audit Log. Without it a removal is saved as `unknown` and treated as a possible kick.
 
+## Join role
+
+The General page can pick one role for Golem to give everyone who joins (`guild_settings.join_role_id`, none by default). Handlers are in `bot/src/events/join-role.ts`.
+
+- Apps aren't given it. Members who still have to accept the server's rules get it once they do; Golem only sees that if it saw them join, so someone who joins just before a restart and accepts after it is missed.
+- Golem needs Manage Roles and a role above the chosen one. The picker marks roles it can't give, and the setting clears itself if the role is deleted.
+
 ## Analytics
 
 The dashboard's Analytics page (second, after General) charts joins and leaves, net growth, messages and active members per day, with totals and retention, for the last 7, 30 or 90 days. Charts use shadcn-svelte's Chart component on [LayerChart](https://layerchart.com/).

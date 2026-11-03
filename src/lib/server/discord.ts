@@ -266,3 +266,63 @@ export async function fetchUsers(userIds: string[]): Promise<Map<string, Discord
 	);
 	return new Map(users.filter((user) => user !== null).map((user) => [user.id, user]));
 }
+
+export type DiscordRole = {
+	id: string;
+	name: string;
+	color: number;
+	position: number;
+	permissions: string;
+	managed: boolean;
+};
+
+const MANAGE_ROLES = 1n << 28n;
+
+export type RoleOption = {
+	id: string;
+	name: string;
+	color: number;
+	// Why Golem can't give this role, or null if it can.
+	blocked: string | null;
+};
+
+// The roles Golem could give, highest first, with the ones it can't marked, plus whether it
+// has Manage Roles at all. @everyone is left out.
+export async function fetchRoleOptions(
+	guildId: string
+): Promise<{ roles: RoleOption[]; canManageRoles: boolean }> {
+	const headers = { Authorization: `Bot ${botToken()}` };
+	const [rolesResponse, meResponse] = await Promise.all([
+		discordFetch(`${API}/guilds/${guildId}/roles`, { headers }),
+		discordFetch(`${API}/guilds/${guildId}/members/${clientId}`, { headers })
+	]);
+	if (rolesResponse.status === 401) error(500, 'The dashboard has the wrong bot token.');
+	const roles = await discordJson<DiscordRole[]>(rolesResponse, "list this server's roles");
+	const me = await discordJson<{ roles: string[] }>(meResponse, 'look up Golem in this server');
+
+	const everyone = roles.find((role) => role.id === guildId);
+	const mine = roles.filter((role) => me.roles.includes(role.id));
+	const permissions = [everyone, ...mine].reduce(
+		(all, role) => all | BigInt(role?.permissions ?? '0'),
+		0n
+	);
+	const canManageRoles = (permissions & (ADMINISTRATOR | MANAGE_ROLES)) !== 0n;
+	const top = Math.max(0, ...mine.map((role) => role.position));
+
+	return {
+		canManageRoles,
+		roles: roles
+			.filter((role) => role.id !== guildId)
+			.sort((a, b) => b.position - a.position)
+			.map((role) => ({
+				id: role.id,
+				name: role.name,
+				color: role.color,
+				blocked: role.managed
+					? 'Belongs to an app or boosting'
+					: role.position >= top
+						? "Above Golem's highest role"
+						: null
+			}))
+	};
+}

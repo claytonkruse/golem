@@ -10,6 +10,7 @@ const defaults: GuildSettings = {
 	levelCommands: false,
 	gamesEnabled: false,
 	restoreRoles: false,
+	joinRoleId: null,
 	restoreKicked: false,
 	restoreBanned: false
 };
@@ -23,6 +24,7 @@ export function getGuildSettings(guildId: string): GuildSettings {
 				levelCommands: row.levelCommands,
 				gamesEnabled: row.gamesEnabled,
 				restoreRoles: row.restoreRoles,
+				joinRoleId: row.joinRoleId,
 				restoreKicked: row.restoreKicked,
 				restoreBanned: row.restoreBanned
 			}
@@ -44,4 +46,12 @@ export function guildsRestoringRoles(): string[] {
 		.where(eq(guildSettings.restoreRoles, true))
 		.all()
 		.map((row) => row.guildId);
+}
+
+// Turns off the join role wherever it was this role, once the role is deleted.
+export function forgetJoinRole(roleId: string): void {
+	db.update(guildSettings)
+		.set({ joinRoleId: null })
+		.where(eq(guildSettings.joinRoleId, roleId))
+		.run();
 }
